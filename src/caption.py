@@ -77,6 +77,30 @@ _DIFFICULTY_HASHTAGS: dict[str, list[str]] = {
     "Master":       ["#chessgrandmaster", "#elitechess", "#chessmasters"],
 }
 
+# ── Chess quotes (20% chance to include) ─────────────────────────────────────
+_QUOTES: list[tuple[str, str]] = [
+    ("Chess is the gymnasium of the mind.", "Blaise Pascal"),
+    ("Every chess master was once a beginner.", "Irving Chernev"),
+    ("Chess is the struggle against the error.", "Johannes Zukertort"),
+    ("Chess is mental torture.", "Garry Kasparov"),
+    ("Chess helps you to concentrate.", "Anatoly Karpov"),
+    ("I like the moment when I break a man's ego.", "Bobby Fischer"),
+    ("Life is like a game of chess.", "George Bernard Shaw"),
+    ("Chess is the art of analysis.", "Mikhail Botvinnik"),
+    ("Chess is the register of ambition.", "Mikhail Tal"),
+    ("Chess is the sport of the intellect.", "Emanuel Lasker"),
+    ("Chess is the test of a gentleman.", "Emanuel Lasker"),
+    ("The essence of chess is thinking about what chess is.", "David Bronstein"),
+    ("Chess is a game of kings.", "Unknown"),
+    ("A chess game is a dialogue between two players.", "Unknown"),
+    ("Chess is the art of knowing yourself.", "Unknown"),
+    ("Chess is war over the board.", "Bobby Fischer"),
+    ("Chess is the most intelligent sport.", "Garry Kasparov"),
+    ("Chess is a game of patience.", "Johannes Zukertort"),
+    ("All I want to do is play chess.", "Bobby Fischer"),
+    ("Chess is the poetry of logic.", "Unknown"),
+]
+
 # ── Hashtag rotation sets ─────────────────────────────────────────────────────
 _HASHTAG_SETS: list[list[str]] = [
     ["#chess", "#chesspuzzle", "#lichess", "#dailypuzzle", "#chessdaily",
@@ -187,9 +211,16 @@ def build_caption(puzzle: dict, hour: int | None = None) -> str:
     # Stats
     stats = _puzzle_stats()
 
+    # Quote (20% chance)
+    quote_line = ""
+    if random.random() < 0.2:
+        quote, author = random.choice(_QUOTES)
+        quote_line = f'"{quote}" — {author}'
+
     lines = [
         opener,
         "",
+        quote_line,
         theme_line,
         move_hint,
         f"Difficulty: {difficulty}  |  Rating: {rating}",
