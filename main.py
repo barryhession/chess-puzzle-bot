@@ -24,6 +24,7 @@ from src.board_renderer import render_puzzle_image
 from src.caption import build_caption
 from src.image_host import upload_image
 from src.solution import format_solution_comment
+from src.reel_renderer import render_reel
 from src import instagram
 
 
@@ -62,6 +63,7 @@ def post_solution_comment(dry_run: bool = False) -> None:
         mark_solution_posted(puzzle_id)
         return
 
+    # 1. Post solution comment
     comment = format_solution_comment(puzzle=pending, full_puzzle_row=full_puzzle)
     print("Solution comment preview:\n" + "-" * 40)
     print(comment)
@@ -69,15 +71,32 @@ def post_solution_comment(dry_run: bool = False) -> None:
 
     if dry_run:
         print("[solution] Dry-run — skipping comment post.")
-        return
+    else:
+        try:
+            instagram.post_comment(media_id, comment)
+            mark_solution_posted(puzzle_id)
+            print(f"[solution] Solution comment posted and recorded.")
+        except Exception as e:
+            print(f"[solution] Failed to post comment: {e}")
 
+    # 2. Render reel and post to Stories
+    print("\n[solution] Rendering solution reel...")
+    reel_path = OUTPUT_DIR / f"{puzzle_id}_reel.mp4"
     try:
-        instagram.post_comment(media_id, comment)
-        mark_solution_posted(puzzle_id)
-        print(f"[solution] Solution comment posted and recorded.")
+        render_reel(full_puzzle, reel_path)
+        size_mb = reel_path.stat().st_size / 1024 / 1024
+        print(f"[solution] Reel rendered: {reel_path} ({size_mb:.1f} MB)")
+
+        if dry_run:
+            print("[solution] Dry-run — skipping Stories post.")
+        else:
+            print("[solution] Uploading reel...")
+            reel_url = upload_image(reel_path)
+            print("[solution] Posting to Stories...")
+            instagram.post_stories(reel_url)
+            print("[solution] Stories post complete!")
     except Exception as e:
-        print(f"[solution] Failed to post comment: {e}")
-        # Don't crash the whole run — new puzzle post should still proceed
+        print(f"[solution] Failed to post Stories reel: {e}")
 
 
 def main() -> None:

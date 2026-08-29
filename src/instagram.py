@@ -125,3 +125,47 @@ def post_comment(media_id: str, text: str) -> str:
     comment_id = data["id"]
     print(f"[instagram] Comment posted! Comment ID: {comment_id}")
     return comment_id
+
+
+def post_stories(video_url: str) -> str:
+    """
+    Post a video to Instagram Stories.
+
+    Args:
+        video_url: publicly accessible HTTPS URL of the MP4 video
+
+    Returns:
+        The published media's numeric ID string.
+    """
+    account_id = _account_id()
+    token = _token()
+
+    # Step 1 – create video container
+    print("[instagram] Creating Stories container...")
+    container_data = _post(
+        f"{account_id}/media",
+        {
+            "media_type":  "STORIES",
+            "video_url":   video_url,
+            "access_token": token,
+        },
+    )
+    container_id = container_data["id"]
+    print(f"[instagram] Stories container created: {container_id}")
+
+    # Give Meta time to download and process the video
+    print("[instagram] Waiting for video to process...")
+    time.sleep(15)
+
+    # Step 2 – publish
+    print("[instagram] Publishing to Stories...")
+    publish_data = _post(
+        f"{account_id}/media_publish",
+        {
+            "creation_id":  container_id,
+            "access_token": token,
+        },
+    )
+    media_id = publish_data["id"]
+    print(f"[instagram] Stories published! Media ID: {media_id}")
+    return media_id
