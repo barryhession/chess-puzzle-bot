@@ -5,11 +5,11 @@ Uploads the rendered PNG to a publicly accessible URL so Instagram's
 servers can fetch it during the media-container creation step.
 
 Strategy (in order of preference):
-  1. catbox.moe    – free, direct raw URL, no account needed, files kept indefinitely
-  2. Imgur         – reliable, set IMGUR_CLIENT_ID in .env for this
-  3. tmpfiles.org  – last resort, short-lived
+  1. catbox.moe  – free, direct raw URL, files kept indefinitely
+  2. Imgur       – reliable fallback, set IMGUR_CLIENT_ID in .env
 
-Set IMGUR_CLIENT_ID in your .env for a more stable production backup.
+After uploading, the URL is verified to actually serve image/png
+before being returned — so Meta never gets an HTML page instead of an image.
 """
 
 import os
@@ -19,7 +19,21 @@ import requests
 
 IMGUR_CLIENT_ID = os.getenv("IMGUR_CLIENT_ID", "")
 
-_TIMEOUT = 30  # seconds
+_TIMEOUT = 60  # seconds — catbox can be slow
+
+
+def _verify_url(url: str) -> None:
+    """Raise if the URL doesn't serve an image content-type."""
+    try:
+        r = requests.get(url, timeout=15, stream=True)
+        ct = r.headers.get("content-type", "")
+        r.close()
+        if "image" not in ct:
+            raise RuntimeError(f"URL returned content-type '{ct}', expected image")
+    except requests.RequestException as e:
+        # Some hosts reject HEAD/GET range requests but Instagram can still fetch them.
+        # Only hard-fail if we got a definitive non-image content-type.
+        print(f"[image_host] Warning: could not verify URL ({e}), proceeding anyway")
 
 
 def _upload_catbox(image_path: Path) -> str:
@@ -33,8 +47,8 @@ def _upload_catbox(image_path: Path) -> str:
         )
     resp.raise_for_status()
     url = resp.text.strip()
-    if not url.startswith("https://"):
-        raise RuntimeError(f"Unexpected catbox response: {url}")
+    if not url.startswith("https://files.catbox.moe/"):
+        raise RuntimeError(f"Unexpected catbox response: {url!r}")
     return url
 
 
@@ -53,46 +67,35 @@ def _upload_imgur(image_path: Path) -> str:
     return url.replace("http://", "https://")
 
 
-def _upload_tmpfiles(image_path: Path) -> str:
-    with open(image_path, "rb") as f:
-        resp = requests.post(
-            "https://tmpfiles.org/api/v1/upload",
-            files={"file": (image_path.name, f, "image/png")},
-            timeout=_TIMEOUT,
-        )
-    resp.raise_for_status()
-    data = resp.json()
-    raw_url: str = data["data"]["url"]
-    return raw_url.replace("tmpfiles.org/", "tmpfiles.org/dl/")
-
-
 def upload_image(image_path: Path) -> str:
     """
-    Upload `image_path` to a public host and return the direct HTTPS URL.
+    Upload `image_path` to a public host, verify it serves a raw image,
+    and return the direct HTTPS URL.
     Raises RuntimeError if all upload methods fail.
     """
     errors = []
 
     try:
         url = _upload_catbox(image_path)
+        _verify_url(url)
         print(f"[image_host] Uploaded to catbox.moe: {url}")
         return url
     except Exception as e:
         errors.append(f"catbox.moe: {e}")
+        print(f"[image_host] catbox.moe failed: {e}")
 
     if IMGUR_CLIENT_ID:
         try:
             url = _upload_imgur(image_path)
+            _verify_url(url)
             print(f"[image_host] Uploaded to Imgur: {url}")
             return url
         except Exception as e:
             errors.append(f"Imgur: {e}")
+            print(f"[image_host] Imgur failed: {e}")
 
-    try:
-        url = _upload_tmpfiles(image_path)
-        print(f"[image_host] Uploaded to tmpfiles.org: {url}")
-        return url
-    except Exception as e:
-        errors.append(f"tmpfiles.org: {e}")
-
-    raise RuntimeError("All image upload methods failed:\n" + "\n".join(errors))
+    raise RuntimeError(
+        "All image upload methods failed. "
+        "Set IMGUR_CLIENT_ID in your secrets for a reliable fallback.\n"
+        + "\n".join(errors)
+    )
