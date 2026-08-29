@@ -60,6 +60,12 @@ jobs:
           INSTAGRAM_APP_SECRET:   ${{ secrets.INSTAGRAM_APP_SECRET }}
         run: python exchange_token.py
 
+      - name: Backfill historical media IDs (one-time)
+        env:
+          INSTAGRAM_ACCESS_TOKEN: ${{ secrets.INSTAGRAM_ACCESS_TOKEN }}
+          INSTAGRAM_ACCOUNT_ID:   ${{ secrets.INSTAGRAM_ACCOUNT_ID }}
+        run: python backfill.py
+
       - name: Post puzzle
         env:
           INSTAGRAM_ACCESS_TOKEN: ${{ secrets.INSTAGRAM_ACCESS_TOKEN }}
