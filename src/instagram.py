@@ -153,9 +153,21 @@ def post_stories(video_url: str) -> str:
     container_id = container_data["id"]
     print(f"[instagram] Stories container created: {container_id}")
 
-    # Give Meta time to download and process the video
+    # Poll until the video is ready (Meta needs time to download + transcode)
     print("[instagram] Waiting for video to process...")
-    time.sleep(15)
+    for attempt in range(20):
+        time.sleep(5)
+        status_resp = requests.get(
+            f"{_BASE}/{container_id}",
+            params={"fields": "status_code", "access_token": token},
+            timeout=_TIMEOUT,
+        )
+        status = status_resp.json().get("status_code", "UNKNOWN")
+        print(f"[instagram] Processing status: {status} (attempt {attempt + 1})")
+        if status == "FINISHED":
+            break
+        if status == "ERROR":
+            raise RuntimeError("Video processing failed on Meta's side")
 
     # Step 2 – publish
     print("[instagram] Publishing to Stories...")
