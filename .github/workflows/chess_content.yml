@@ -105,7 +105,7 @@ jobs:
             python -c "
           from dotenv import load_dotenv; load_dotenv()
           from src.openings import get_opening_of_the_day
-          from src.text_renderer import render_opening
+          from src.text_renderer import render_opening, render_opening_stories
           from src.image_host import upload_image
           from src import instagram
 
@@ -117,7 +117,10 @@ jobs:
 
           image_url = upload_image(output_path)
           media_id = instagram.publish(image_url, caption)
-          instagram.post_stories_image(image_url)
+
+          stories_path = render_opening_stories(opening)
+          stories_url = upload_image(stories_path)
+          instagram.post_stories_image(stories_url)
           print(f'Done! Media ID: {media_id}')
           "
           fi

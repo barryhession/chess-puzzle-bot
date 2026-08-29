@@ -272,3 +272,18 @@ def render_opening(opening_data: dict, output_path: Path | None = None) -> Path:
     if output_path is None:
         output_path = Path("output") / "opening.png"
     return render_opening_with_board(opening_data, board_size=720, output_path=output_path)
+
+
+def render_opening_stories(opening_data: dict, output_path: Path | None = None) -> Path:
+    """Render a chess opening graphic padded to 1080×1920 for Stories."""
+    from src.opening_renderer import render_opening_with_board
+    if output_path is None:
+        output_path = Path("output") / "opening_stories.png"
+    render_opening_with_board(opening_data, board_size=720, output_path=output_path)
+    # Pad 1080×1350 → 1080×1920 (9:16) with black bars
+    img = Image.open(output_path)
+    canvas = Image.new("RGB", (CANVAS_W, 1920), BG_COLOR)
+    y_offset = (1920 - CANVAS_H) // 2
+    canvas.paste(img, (0, y_offset))
+    canvas.save(str(output_path), "PNG")
+    return output_path
