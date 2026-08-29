@@ -267,13 +267,8 @@ def render_book(book_data: dict, output_path: Path | None = None) -> Path:
 
 
 def render_opening(opening_data: dict, output_path: Path | None = None) -> Path:
-    """Render a chess opening graphic."""
+    """Render a chess opening graphic with board position."""
+    from src.opening_renderer import render_opening_with_board
     if output_path is None:
         output_path = Path("output") / "opening.png"
-
-    title = "OPENING OF THE DAY"
-    heading = opening_data["name"]
-    body = opening_data["idea"]
-    subtitle = f"{opening_data['moves']}  ·  {opening_data['level']}"
-
-    return render_text_graphic(title, heading, body, subtitle, output_path)
+    return render_opening_with_board(opening_data, board_size=720, output_path=output_path)

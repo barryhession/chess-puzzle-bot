@@ -6,6 +6,7 @@ Chess opening of the day for Instagram posts.
 Each opening includes:
   - name: opening name
   - moves: main line moves
+  - fen: position after the moves
   - idea: brief explanation
   - level: who should play it
 """
@@ -16,180 +17,210 @@ OPENINGS: list[dict[str, str]] = [
     {
         "name": "Sicilian Defense",
         "moves": "1. e4 c5",
+        "fen": "rnbqkbnr/pp1ppppp/8/2p5/4P3/8/PPPP1PPP/RNBQKBNR w KQkq - 0 2",
         "idea": "The most popular response to 1. e4. Black fights for the center and creates an asymmetric position full of tactical chances.",
         "level": "All levels"
     },
     {
         "name": "Queen's Gambit",
         "moves": "1. d4 d5 2. c4",
+        "fen": "rnbqkbnr/ppp1pppp/8/3p4/2PP4/8/PP2PPPP/RNBQKBNR b KQkq - 0 2",
         "idea": "White offers a pawn to gain central control. Black can accept (dxc4) or decline with solid setups.",
         "level": "All levels"
     },
     {
         "name": "Italian Game",
         "moves": "1. e4 e5 2. Nf3 Nc6 3. Bc4",
+        "fen": "r1bqkbnr/pppp1ppp/2n5/4p3/2B1P3/5N2/PPPP1PPP/RNBQK2R b KQkq - 3 3",
         "idea": "One of the oldest openings. White develops quickly and targets the f7 square.",
         "level": "Beginner"
     },
     {
         "name": "Ruy Lopez",
         "moves": "1. e4 e5 2. Nf3 Nc6 3. Bb5",
+        "fen": "r1bqkbnr/pppp1ppp/2n5/1B2p3/4P3/5N2/PPPP1PPP/RNBQK2R b KQkq - 3 3",
         "idea": "The 'Spanish Game' — White puts pressure on the knight defending e5. A favorite of World Champions.",
         "level": "Intermediate"
     },
     {
         "name": "French Defense",
         "moves": "1. e4 e6",
+        "fen": "rnbqkbnr/pppp1ppp/4p3/8/4P3/8/PPPP1PPP/RNBQKBNR w KQkq - 0 2",
         "idea": "A solid, strategic response. Black builds a strong pawn chain and counterattacks in the center.",
         "level": "Intermediate"
     },
     {
         "name": "Caro-Kann Defense",
         "moves": "1. e4 c6",
+        "fen": "rnbqkbnr/pp1ppppp/2p5/8/4P3/8/PPPP1PPP/RNBQKBNR w KQkq - 0 2",
         "idea": "Solid and reliable. Black prepares d5 to challenge the center without creating weaknesses.",
         "level": "Intermediate"
     },
     {
         "name": "King's Indian Defense",
         "moves": "1. d4 Nf6 2. c4 g6",
+        "fen": "rnbqkb1r/pppppp1p/5np1/8/2PP4/8/PP2PPPP/RNBQKBNR w KQkq - 0 3",
         "idea": "A hypermodern defense. Black allows White to build a center, then counterattacks it.",
         "level": "Advanced"
     },
     {
         "name": "Nimzo-Indian Defense",
         "moves": "1. d4 Nf6 2. c4 e6 3. Nc3 Bb4",
+        "fen": "rnbqk2r/pppp1ppp/4pn2/8/1bPP4/2N5/PP2PPPP/R1BQKBNR w KQkq - 2 4",
         "idea": "Black pins the knight and creates immediate tension. One of the most respected defenses.",
         "level": "Advanced"
     },
     {
         "name": "Scotch Game",
         "moves": "1. e4 e5 2. Nf3 Nc6 3. d4",
+        "fen": "r1bqkbnr/pppp1ppp/2n5/4p3/3PP3/5N2/PPP2PPP/RNBQKB1R b KQkq - 0 3",
         "idea": "White immediately opens the center. Kasparov revived this opening at the top level.",
         "level": "Intermediate"
     },
     {
         "name": "Vienna Game",
         "moves": "1. e4 e5 2. Nc3",
+        "fen": "rnbqkbnr/pppp1ppp/8/4p3/4P3/2N5/PPPP1PPP/R1BQKBNR b KQkq - 1 2",
         "idea": "A flexible system where White can transpose to gambits or solid positions.",
         "level": "Intermediate"
     },
     {
         "name": "English Opening",
         "moves": "1. c4",
+        "fen": "rnbqkbnr/pppppppp/8/8/2P5/8/PP1PPPPP/RNBQKBNR b KQkq - 0 1",
         "idea": "A flank opening that controls d5 without committing the central pawns. Very flexible.",
         "level": "Intermediate"
     },
     {
         "name": "Reti Opening",
         "moves": "1. Nf3",
+        "fen": "rnbqkbnr/pppppppp/8/8/8/5N2/PPPPPPPP/RNBQKB1R b KQkq - 1 1",
         "idea": "A hypermodern approach — White controls the center with pieces rather than pawns.",
         "level": "Advanced"
     },
     {
         "name": "Pirc Defense",
         "moves": "1. e4 d6 2. d4 Nf6 3. Nc3 g6",
+        "fen": "rnbqkb1r/ppp1pp1p/3p1np1/8/3PP3/2N5/PPP2PPP/R1BQKBNR w KQkq - 0 4",
         "idea": "Black lets White build a big center, then attacks it with pieces and pawns.",
         "level": "Advanced"
     },
     {
         "name": "Alekhine's Defense",
         "moves": "1. e4 Nf6",
+        "fen": "rnbqkb1r/pppppppp/5n2/8/4P3/8/PPPP1PPP/RNBQKBNR w KQkq - 1 2",
         "idea": "Black provokes White's pawns forward, then attacks the overextended center.",
         "level": "Advanced"
     },
     {
         "name": "Owen's Defense",
         "moves": "1. e4 b6",
+        "fen": "rnbqkbnr/p1pppppp/1p6/8/4P3/8/PPPP1PPP/RNBQKBNR w KQkq - 0 2",
         "idea": "A rare, hypermodern setup. Black fianchettoes the bishop and controls the center from afar.",
         "level": "Advanced"
     },
     {
         "name": "Larsen's Opening",
         "moves": "1. b3",
+        "fen": "rnbqkbnr/pppppppp/8/8/8/1P6/P1PPPPPP/RNBQKBNR b KQkq - 0 1",
         "idea": "White fianchettoes the bishop and plays flexibly. Named after Danish GM Bent Larsen.",
         "level": "Intermediate"
     },
     {
         "name": "Bird's Opening",
         "moves": "1. f4",
-        "idea": "A aggressive flank opening. White controls e5 and prepares kingside attack.",
+        "fen": "rnbqkbnr/pppppppp/8/8/5P2/8/PPPPP1PP/RNBQKBNR b KQkq - 0 1",
+        "idea": "An aggressive flank opening. White controls e5 and prepares kingside attack.",
         "level": "Intermediate"
     },
     {
         "name": "Sokolsky Opening",
         "moves": "1. b4",
+        "fen": "rnbqkbnr/pppppppp/8/8/1P6/8/P1PPPPPP/RNBQKBNR b KQkq - 0 1",
         "idea": "An uncommon opening aiming to control c5 and develop the bishop to b2.",
         "level": "Advanced"
     },
     {
         "name": "Van Geet Opening",
         "moves": "1. Nc3",
+        "fen": "rnbqkbnr/pppppppp/8/8/8/2N5/PPPPPPPP/R1BQKBNR b KQkq - 1 1",
         "idea": "A rare, flexible system. White develops the knight and keeps options open.",
         "level": "Advanced"
     },
     {
         "name": "Four Knights Game",
         "moves": "1. e4 e5 2. Nf3 Nc6 3. Nc3 Nf6",
+        "fen": "r1bqkb1r/pppp1ppp/2n2n2/4p3/4P3/2N2N2/PPPP1PPP/R1BQKB1R w KQkq - 4 4",
         "idea": "Both sides develop all four knights. Solid and symmetrical, but can lead to sharp play.",
         "level": "Beginner"
     },
     {
         "name": "Philidor Defense",
         "moves": "1. e4 e5 2. Nf3 d6",
+        "fen": "rnbqkbnr/ppp2ppp/3p4/4p3/4P3/5N2/PPPP1PPP/RNBQKB1R w KQkq - 0 3",
         "idea": "A solid but passive defense. Black supports e5 but blocks the bishop.",
         "level": "Beginner"
     },
     {
         "name": "Petrov's Defense",
         "moves": "1. e4 e5 2. Nf3 Nf6",
+        "fen": "rnbqkb1r/pppp1ppp/5n2/4p3/4P3/5N2/PPPP1PPP/RNBQKB1R w KQkq - 2 3",
         "idea": "A solid, symmetrical defense. Popular at top level for its drawing tendencies.",
         "level": "Intermediate"
     },
     {
         "name": "Scandinavian Defense",
         "moves": "1. e4 d5",
+        "fen": "rnbqkbnr/ppp1pppp/8/3p4/4P3/8/PPPP1PPP/RNBQKBNR w KQkq - 0 2",
         "idea": "Black immediately challenges the center. Simple to learn but slightly inferior for Black.",
         "level": "Beginner"
     },
     {
         "name": "Center Game",
         "moves": "1. e4 e5 2. d4 exd4 3. Qxd4",
+        "fen": "rnbqkbnr/pppp1ppp/8/8/3QP3/8/PPP2PPP/RNB1KBNR b KQkq - 0 3",
         "idea": "White recaptures with the queen early. Simple but gives Black easy development.",
         "level": "Beginner"
     },
     {
         "name": "Danish Gambit",
         "moves": "1. e4 e5 2. d4 exd4 3. c3",
+        "fen": "rnbqkbnr/pppp1ppp/8/8/3pP3/2P5/PP3PPP/RNBQKBNR b KQkq - 0 3",
         "idea": "White sacrifices pawns for rapid development and open lines. Aggressive but risky.",
         "level": "Intermediate"
     },
     {
         "name": "King's Gambit",
         "moves": "1. e4 e5 2. f4",
+        "fen": "rnbqkbnr/pppp1ppp/8/4p3/4PP2/8/PPPP2PP/RNBQKBNR b KQkq - 0 2",
         "idea": "One of the oldest and most aggressive openings. White sacrifices a pawn for attack.",
         "level": "Intermediate"
     },
     {
         "name": "Evans Gambit",
         "moves": "1. e4 e5 2. Nf3 Nc6 3. Bc4 Bc5 4. b4",
+        "fen": "r1bqk1nr/pppp1ppp/2n5/2b1p3/1PB1P3/5N2/P1PP1PPP/RNBQK2R b KQkq - 0 4",
         "idea": "White sacrifices a pawn to gain time and open lines. A favorite of Morphy and Kasparov.",
         "level": "Intermediate"
     },
     {
         "name": "Two Knights Defense",
         "moves": "1. e4 e5 2. Nf3 Nc6 3. Bc4 Nf6",
+        "fen": "r1bqkb1r/pppp1ppp/2n2n2/4p3/2B1P3/5N2/PPPP1PPP/RNBQK2R w KQkq - 4 4",
         "idea": "Black immediately attacks e4. Leads to sharp, tactical positions.",
         "level": "Intermediate"
     },
     {
         "name": "Bishop's Opening",
         "moves": "1. e4 e5 2. Bc4",
+        "fen": "rnbqkbnr/pppp1ppp/8/4p3/2B1P3/8/PPPP1PPP/RNBQK1NR b KQkq - 1 2",
         "idea": "White develops the bishop early, targeting f7. Flexible system with many options.",
         "level": "Beginner"
     },
     {
         "name": "London System",
         "moves": "1. d4 d5 2. Nf3 Nf6 3. Bf4",
+        "fen": "rnbqkb1r/ppp1pppp/5n2/3p4/3P1B2/5N2/PPP1PPPP/RN1QKB1R b KQkq - 3 3",
         "idea": "A solid, universal system. White develops naturally without studying specific theory.",
         "level": "Beginner"
     },

@@ -28,11 +28,11 @@ jobs:
           INSTAGRAM_APP_ID: ${{ secrets.INSTAGRAM_APP_ID }}
           INSTAGRAM_APP_SECRET: ${{ secrets.INSTAGRAM_APP_SECRET }}
 
-      - name: Post chess content (term/history/book based on day)
+      - name: Post chess content (term/history/book/opening based on day)
         run: |
-          # Select content type based on day of year (rotates daily)
+          # Select content type based on day of year (rotates daily: 4 types)
           DAY_OF_YEAR=$(date +%j)
-          CONTENT_TYPE=$(( 10#$DAY_OF_YEAR % 3 ))
+          CONTENT_TYPE=$(( 10#$DAY_OF_YEAR % 4 ))
 
           if [ $CONTENT_TYPE -eq 0 ]; then
             echo "Posting Chess Term of the Day"
@@ -80,7 +80,7 @@ jobs:
           else:
               print('No historical event for today.')
           "
-          else
+          elif [ $CONTENT_TYPE -eq 2 ]; then
             echo "Posting Book of the Week"
             python -c "
           from dotenv import load_dotenv; load_dotenv()
@@ -94,6 +94,26 @@ jobs:
 
           hashtags = ['#chess', '#chessbooks', '#lichess', '#chesspuzzle', '#chesscom', '#chessdaily', '#chesslife', '#chesslove', '#chessgame', '#chessboard', '#chessislife', '#chesscommunity', '#chessclub', '#chessreading', '#chessplayer', '#chessmaster', '#chesstraining', '#chessworld', '#chessmoves', '#chessgrandmaster']
           caption = f'📚 Book of the Week: {book[\"title\"]}\n\nby {book[\"author\"]}\n\n{book[\"description\"]}\n\nLevel: {book[\"level\"]}\n\n{\" \".join(hashtags)}'
+
+          image_url = upload_image(output_path)
+          media_id = instagram.publish(image_url, caption)
+          instagram.post_stories_image(image_url)
+          print(f'Done! Media ID: {media_id}')
+          "
+          else
+            echo "Posting Opening of the Day"
+            python -c "
+          from dotenv import load_dotenv; load_dotenv()
+          from src.openings import get_opening_of_the_day
+          from src.text_renderer import render_opening
+          from src.image_host import upload_image
+          from src import instagram
+
+          opening = get_opening_of_the_day()
+          output_path = render_opening(opening)
+
+          hashtags = ['#chess', '#chessopening', '#lichess', '#chesspuzzle', '#chesscom', '#chessdaily', '#chesslife', '#chesslove', '#chessgame', '#chessboard', '#chessislife', '#chesscommunity', '#chessclub', '#chesstheory', '#chessplayer', '#chessmaster', '#chesstraining', '#chessworld', '#chessmoves', '#chessgrandmaster']
+          caption = f'♟️ Opening of the Day: {opening[\"name\"]}\n\n{opening[\"moves\"]}\n\n{opening[\"idea\"]}\n\nLevel: {opening[\"level\"]}\n\n{\" \".join(hashtags)}'
 
           image_url = upload_image(output_path)
           media_id = instagram.publish(image_url, caption)
