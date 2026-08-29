@@ -50,8 +50,17 @@ def _get_db() -> sqlite3.Connection:
     conn = sqlite3.connect(DB_PATH)
     conn.execute(
         "CREATE TABLE IF NOT EXISTS used_puzzles "
-        "(puzzle_id TEXT PRIMARY KEY, used_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)"
+        "(puzzle_id TEXT PRIMARY KEY, "
+        " used_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, "
+        " media_id TEXT, "
+        " solution_posted INTEGER DEFAULT 0)"
     )
+    # Migrate existing DB if columns are missing
+    existing = {row[1] for row in conn.execute("PRAGMA table_info(used_puzzles)")}
+    if "media_id" not in existing:
+        conn.execute("ALTER TABLE used_puzzles ADD COLUMN media_id TEXT")
+    if "solution_posted" not in existing:
+        conn.execute("ALTER TABLE used_puzzles ADD COLUMN solution_posted INTEGER DEFAULT 0")
     conn.commit()
     return conn
 
@@ -63,11 +72,40 @@ def _is_used(conn: sqlite3.Connection, puzzle_id: str) -> bool:
     return row is not None
 
 
-def mark_used(puzzle_id: str) -> None:
+def mark_used(puzzle_id: str, media_id: str = "") -> None:
     """Record a puzzle as used so it won't be picked again."""
     conn = _get_db()
     conn.execute(
-        "INSERT OR IGNORE INTO used_puzzles (puzzle_id) VALUES (?)", (puzzle_id,)
+        "INSERT OR IGNORE INTO used_puzzles (puzzle_id, media_id) VALUES (?, ?)",
+        (puzzle_id, media_id),
+    )
+    conn.commit()
+    conn.close()
+
+
+def get_pending_solution() -> Optional[dict]:
+    """
+    Return the most recent post that hasn't had a solution comment posted yet,
+    or None if everything is up to date.
+    """
+    conn = _get_db()
+    row = conn.execute(
+        "SELECT puzzle_id, media_id FROM used_puzzles "
+        "WHERE solution_posted = 0 AND media_id IS NOT NULL AND media_id != '' "
+        "ORDER BY used_at DESC LIMIT 1"
+    ).fetchone()
+    conn.close()
+    if row:
+        return {"puzzle_id": row[0], "media_id": row[1]}
+    return None
+
+
+def mark_solution_posted(puzzle_id: str) -> None:
+    """Mark a puzzle's solution comment as posted."""
+    conn = _get_db()
+    conn.execute(
+        "UPDATE used_puzzles SET solution_posted = 1 WHERE puzzle_id = ?",
+        (puzzle_id,),
     )
     conn.commit()
     conn.close()

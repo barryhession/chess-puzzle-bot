@@ -98,3 +98,30 @@ def publish(image_url: str, caption: str) -> str:
     media_id = publish_data["id"]
     print(f"[instagram] Published! Media ID: {media_id}")
     return media_id
+
+
+def post_comment(media_id: str, text: str) -> str:
+    """
+    Post a comment on an existing Instagram media object.
+
+    Args:
+        media_id: the numeric ID of the published post
+        text:     comment text
+
+    Returns:
+        The comment's numeric ID string.
+    """
+    account_id = _account_id()
+    token = _token()
+
+    print(f"[instagram] Posting solution comment on media {media_id}...")
+    data = _post(
+        f"{media_id}/comments",
+        {
+            "message":      text,
+            "access_token": token,
+        },
+    )
+    comment_id = data["id"]
+    print(f"[instagram] Comment posted! Comment ID: {comment_id}")
+    return comment_id
