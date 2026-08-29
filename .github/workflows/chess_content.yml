@@ -1,0 +1,109 @@
+name: Chess Content Post
+
+on:
+  schedule:
+    - cron: "0 15 * * *"  # 15:00 UTC daily (16:00 IST)
+  workflow_dispatch:
+
+jobs:
+  post-content:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Refresh Instagram token
+        run: python exchange_token.py
+        env:
+          INSTAGRAM_ACCESS_TOKEN: ${{ secrets.INSTAGRAM_ACCESS_TOKEN }}
+          INSTAGRAM_APP_ID: ${{ secrets.INSTAGRAM_APP_ID }}
+          INSTAGRAM_APP_SECRET: ${{ secrets.INSTAGRAM_APP_SECRET }}
+
+      - name: Post chess content (term/history/book based on day)
+        run: |
+          # Select content type based on day of year (rotates daily)
+          DAY_OF_YEAR=$(date +%j)
+          CONTENT_TYPE=$(( 10#$DAY_OF_YEAR % 3 ))
+
+          if [ $CONTENT_TYPE -eq 0 ]; then
+            echo "Posting Chess Term of the Day"
+            python -c "
+          from dotenv import load_dotenv; load_dotenv()
+          from src.chess_terms import get_term_of_the_day
+          from src.text_renderer import render_chess_term
+          from src.image_host import upload_image
+          from src import instagram
+
+          term = get_term_of_the_day()
+          output_path = render_chess_term(term)
+
+          hashtags = ['#chess', '#chessterm', '#lichess', '#chesspuzzle', '#chesscom', '#chessdaily', '#chesslife', '#chesslove', '#chessgame', '#chessboard', '#chessislife', '#chesscommunity', '#chessclub', '#chessstrategy', '#chessplayer', '#chessmaster', '#chesstraining', '#chessworld', '#chessmoves', '#chessgrandmaster']
+          caption = f'♟️ Chess Term: {term[\"term\"]}\n\n{term[\"definition\"]}\n\n{term[\"example\"]}\n\n{\" \".join(hashtags)}'
+
+          image_url = upload_image(output_path)
+          media_id = instagram.publish(image_url, caption)
+          instagram.post_stories_image(image_url)
+          print(f'Done! Media ID: {media_id}')
+          "
+          elif [ $CONTENT_TYPE -eq 1 ]; then
+            echo "Posting On This Day in Chess History"
+            python -c "
+          from dotenv import load_dotenv; load_dotenv()
+          from src.history import get_today_in_history
+          from src.text_renderer import render_historical_event
+          from src.image_host import upload_image
+          from src import instagram
+
+          event = get_today_in_history()
+          if event:
+              output_path = render_historical_event(event)
+              month, day = event['date'].split('-')
+              months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December']
+              date_str = f'{months[int(month)-1]} {int(day)}'
+
+              hashtags = ['#chess', '#chesstrivia', '#lichess', '#chesspuzzle', '#chesscom', '#chessdaily', '#chesslife', '#chesslove', '#chessgame', '#chessboard', '#chessislife', '#chesscommunity', '#chessclub', '#chesshistory', '#chessplayer', '#chessmaster', '#chesstraining', '#chessworld', '#chessmoves', '#chessgrandmaster']
+              caption = f'📅 On This Day: {date_str}\n\n{event[\"event\"]}\n\n{event[\"detail\"]}\n\n{\" \".join(hashtags)}'
+
+              image_url = upload_image(output_path)
+              media_id = instagram.publish(image_url, caption)
+              instagram.post_stories_image(image_url)
+              print(f'Done! Media ID: {media_id}')
+          else:
+              print('No historical event for today.')
+          "
+          else
+            echo "Posting Book of the Week"
+            python -c "
+          from dotenv import load_dotenv; load_dotenv()
+          from src.books import get_book_of_the_week
+          from src.text_renderer import render_book
+          from src.image_host import upload_image
+          from src import instagram
+
+          book = get_book_of_the_week()
+          output_path = render_book(book)
+
+          hashtags = ['#chess', '#chessbooks', '#lichess', '#chesspuzzle', '#chesscom', '#chessdaily', '#chesslife', '#chesslove', '#chessgame', '#chessboard', '#chessislife', '#chesscommunity', '#chessclub', '#chessreading', '#chessplayer', '#chessmaster', '#chesstraining', '#chessworld', '#chessmoves', '#chessgrandmaster']
+          caption = f'📚 Book of the Week: {book[\"title\"]}\n\nby {book[\"author\"]}\n\n{book[\"description\"]}\n\nLevel: {book[\"level\"]}\n\n{\" \".join(hashtags)}'
+
+          image_url = upload_image(output_path)
+          media_id = instagram.publish(image_url, caption)
+          instagram.post_stories_image(image_url)
+          print(f'Done! Media ID: {media_id}')
+          "
+          fi
+        env:
+          INSTAGRAM_ACCESS_TOKEN: ${{ secrets.INSTAGRAM_ACCESS_TOKEN }}
+          INSTAGRAM_ACCOUNT_ID: ${{ secrets.INSTAGRAM_ACCOUNT_ID }}
+          GH_PAT: ${{ secrets.GH_PAT }}
+          GH_REPO: ${{ secrets.GH_REPO }}
+          PYTHONUTF8: "1"
