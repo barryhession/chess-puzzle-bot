@@ -30,6 +30,15 @@ from src import instagram
 
 OUTPUT_DIR = Path(__file__).parent / "output"
 
+# Engagement prompts — posted as first comment after puzzle goes live
+_ENGAGEMENT_PROMPTS = [
+    "💡 Drop your first move in the comments!",
+    "🤔 What's your first instinct? Comment below!",
+    "♟️ Can you find the winning move? Tell us!",
+    "🧠 Solve it and share your answer!",
+    "🎯 What do you play here? Let us know!",
+]
+
 
 def _find_puzzle_by_id(puzzle_id: str) -> dict:
     """Load a specific puzzle by ID from the CSV (linear scan, for debugging)."""
@@ -150,8 +159,18 @@ def main() -> None:
     print("\n=== Step 5: Publishing to Instagram ===")
     media_id = instagram.publish(image_url, caption)
 
-    # 6. Mark puzzle as used (with media_id for solution comment later)
-    print("\n=== Step 6: Recording puzzle as used ===")
+    # 6. Post engagement comment
+    print("\n=== Step 6: Posting engagement comment ===")
+    import random
+    prompt = random.choice(_ENGAGEMENT_PROMPTS)
+    try:
+        instagram.post_comment(media_id, prompt)
+        print(f"Engagement comment posted: {prompt}")
+    except Exception as e:
+        print(f"Warning: Failed to post engagement comment: {e}")
+
+    # 7. Mark puzzle as used (with media_id for solution comment later)
+    print("\n=== Step 7: Recording puzzle as used ===")
     mark_used(puzzle["PuzzleId"], media_id=media_id)
     print(f"Puzzle {puzzle['PuzzleId']} marked as used (media_id: {media_id}).")
 
