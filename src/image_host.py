@@ -57,6 +57,41 @@ def _get_or_create_release(tag: str = "puzzle-images") -> dict:
     return r.json()
 
 
+def _cleanup_old_assets(release_id: int, keep_count: int = 8) -> None:
+    """Keep only the latest `keep_count` assets in the release, delete older ones."""
+    headers = {
+        "Authorization": f"Bearer {GH_PAT}",
+        "Accept": "application/vnd.github+json",
+    }
+    try:
+        r = requests.get(
+            f"{_GH_API}/repos/{GH_REPO}/releases/{release_id}/assets",
+            headers=headers,
+            timeout=_TIMEOUT,
+        )
+        if r.status_code != 200:
+            return
+        assets = r.json()
+        if len(assets) <= keep_count:
+            return
+
+        # Sort assets by updated_at descending (newest first)
+        assets.sort(key=lambda a: a.get("updated_at", ""), reverse=True)
+
+        # Delete anything beyond keep_count
+        to_delete = assets[keep_count:]
+        for asset in to_delete:
+            asset_id = asset["id"]
+            requests.delete(
+                f"{_GH_API}/repos/{GH_REPO}/releases/assets/{asset_id}",
+                headers=headers,
+                timeout=_TIMEOUT,
+            )
+            print(f"[image_host] Cleaned up old release asset: {asset['name']}")
+    except Exception as e:
+        print(f"[image_host] Warning: failed to cleanup old assets: {e}")
+
+
 def _upload_github(image_path: Path) -> str:
     """Upload image as a GitHub release asset and return the download URL."""
     release = _get_or_create_release()
@@ -102,6 +137,10 @@ def _upload_github(image_path: Path) -> str:
             )
 
     r.raise_for_status()
+
+    # Cleanup old assets keeping only the latest 8
+    _cleanup_old_assets(release["id"], keep_count=8)
+
     return r.json()["browser_download_url"]
 
 
