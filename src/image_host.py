@@ -4,57 +4,109 @@ image_host.py
 Uploads the rendered PNG to a publicly accessible URL so Instagram's
 servers can fetch it during the media-container creation step.
 
-Strategy (in order of preference):
-  1. ImgBB       – free API, no IP blocking, direct image URLs (set IMGBB_API_KEY)
-  2. Imgur        – fallback, set IMGUR_CLIENT_ID
-  3. catbox.moe  – local fallback only (blocked by GitHub Actions IPs)
+Strategy:
+  Primary:  GitHub Release asset upload via GH_PAT secret.
+            GitHub's CDN (objects.githubusercontent.com) is fully
+            accessible by Meta's servers and has no IP restrictions.
+  Fallback: catbox.moe (works locally, may be blocked in CI).
+
+GH_PAT must have 'repo' scope.
+GH_REPO should be set to 'owner/repo' (e.g. 'barryhession/chess-puzzle-bot').
 """
 
-import base64
 import os
 from pathlib import Path
 
 import requests
 
-IMGBB_API_KEY   = os.getenv("IMGBB_API_KEY", "")
-IMGUR_CLIENT_ID = os.getenv("IMGUR_CLIENT_ID", "")
+GH_PAT  = os.getenv("GH_PAT", "")
+GH_REPO = os.getenv("GH_REPO", "barryhession/chess-puzzle-bot")
 
-_TIMEOUT = 60  # seconds
+_TIMEOUT = 60
+_GH_API  = "https://api.github.com"
 
 
-def _upload_imgbb(image_path: Path) -> str:
-    """Upload to ImgBB — returns a direct image URL."""
-    with open(image_path, "rb") as f:
-        img_b64 = base64.b64encode(f.read()).decode()
-    resp = requests.post(
-        "https://api.imgbb.com/1/upload",
-        data={"key": IMGBB_API_KEY, "image": img_b64},
+def _get_or_create_release(tag: str = "puzzle-images") -> dict:
+    """Get the puzzle-images release, creating it if it doesn't exist."""
+    headers = {
+        "Authorization": f"Bearer {GH_PAT}",
+        "Accept": "application/vnd.github+json",
+    }
+    # Try to get existing release
+    r = requests.get(
+        f"{_GH_API}/repos/{GH_REPO}/releases/tags/{tag}",
+        headers=headers,
         timeout=_TIMEOUT,
     )
-    resp.raise_for_status()
-    data = resp.json()
-    if not data.get("success"):
-        raise RuntimeError(f"ImgBB error: {data}")
-    return data["data"]["url"]
+    if r.status_code == 200:
+        return r.json()
+
+    # Create it
+    r = requests.post(
+        f"{_GH_API}/repos/{GH_REPO}/releases",
+        headers=headers,
+        json={
+            "tag_name":    tag,
+            "name":        "Puzzle Images",
+            "body":        "Auto-generated chess puzzle images for Instagram posts.",
+            "prerelease":  True,
+        },
+        timeout=_TIMEOUT,
+    )
+    r.raise_for_status()
+    return r.json()
 
 
-def _upload_imgur(image_path: Path) -> str:
-    headers = {"Authorization": f"Client-ID {IMGUR_CLIENT_ID}"}
+def _upload_github(image_path: Path) -> str:
+    """Upload image as a GitHub release asset and return the download URL."""
+    release = _get_or_create_release()
+    upload_url = release["upload_url"].split("{")[0]  # strip {?name,label}
+
+    headers = {
+        "Authorization": f"Bearer {GH_PAT}",
+        "Content-Type":  "image/png",
+    }
     with open(image_path, "rb") as f:
-        resp = requests.post(
-            "https://api.imgur.com/3/image",
+        r = requests.post(
+            upload_url,
             headers=headers,
-            files={"image": f},
+            params={"name": image_path.name},
+            data=f,
             timeout=_TIMEOUT,
         )
-    resp.raise_for_status()
-    data = resp.json()
-    url = data["data"]["link"]
-    return url.replace("http://", "https://")
+
+    # 422 = asset with this name already exists — fetch its URL instead
+    if r.status_code == 422:
+        assets = requests.get(
+            f"{_GH_API}/repos/{GH_REPO}/releases/{release['id']}/assets",
+            headers={"Authorization": f"Bearer {GH_PAT}", "Accept": "application/vnd.github+json"},
+            timeout=_TIMEOUT,
+        ).json()
+        for asset in assets:
+            if asset["name"] == image_path.name:
+                # Delete and re-upload so we always get the freshest image
+                requests.delete(
+                    f"{_GH_API}/repos/{GH_REPO}/releases/assets/{asset['id']}",
+                    headers={"Authorization": f"Bearer {GH_PAT}", "Accept": "application/vnd.github+json"},
+                    timeout=_TIMEOUT,
+                )
+                break
+        # Re-upload after deletion
+        with open(image_path, "rb") as f:
+            r = requests.post(
+                upload_url,
+                headers=headers,
+                params={"name": image_path.name},
+                data=f,
+                timeout=_TIMEOUT,
+            )
+
+    r.raise_for_status()
+    return r.json()["browser_download_url"]
 
 
 def _upload_catbox(image_path: Path) -> str:
-    """Upload to catbox.moe — works locally, blocked by some CI IP ranges."""
+    """Upload to catbox.moe — works locally, may be blocked in CI."""
     with open(image_path, "rb") as f:
         resp = requests.post(
             "https://catbox.moe/user/api.php",
@@ -72,27 +124,18 @@ def _upload_catbox(image_path: Path) -> str:
 def upload_image(image_path: Path) -> str:
     """
     Upload `image_path` to a public host and return the direct HTTPS URL.
-    Raises RuntimeError if all upload methods fail.
+    Raises RuntimeError if all methods fail.
     """
     errors = []
 
-    if IMGBB_API_KEY:
+    if GH_PAT:
         try:
-            url = _upload_imgbb(image_path)
-            print(f"[image_host] Uploaded to ImgBB: {url}")
+            url = _upload_github(image_path)
+            print(f"[image_host] Uploaded to GitHub Releases: {url}")
             return url
         except Exception as e:
-            errors.append(f"ImgBB: {e}")
-            print(f"[image_host] ImgBB failed: {e}")
-
-    if IMGUR_CLIENT_ID:
-        try:
-            url = _upload_imgur(image_path)
-            print(f"[image_host] Uploaded to Imgur: {url}")
-            return url
-        except Exception as e:
-            errors.append(f"Imgur: {e}")
-            print(f"[image_host] Imgur failed: {e}")
+            errors.append(f"GitHub Releases: {e}")
+            print(f"[image_host] GitHub Releases failed: {e}")
 
     try:
         url = _upload_catbox(image_path)
@@ -103,7 +146,6 @@ def upload_image(image_path: Path) -> str:
         print(f"[image_host] catbox.moe failed: {e}")
 
     raise RuntimeError(
-        "All image upload methods failed. "
-        "Ensure IMGBB_API_KEY is set in your secrets.\n"
+        "All image upload methods failed. Ensure GH_PAT is set in your secrets.\n"
         + "\n".join(errors)
     )
