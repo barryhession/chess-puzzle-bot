@@ -177,7 +177,7 @@ def render_puzzle_image(puzzle: dict, output_path: Path) -> Path:
     font_sub    = _load_font(34)
     font_small  = _load_font(26)
 
-    brand_text = "@chessdailypuzzle"
+    brand_text = "@thechesssignal"
     draw.text((CANVAS_W // 2, 30), brand_text, font=font_brand,
               fill=TEXT_SECONDARY, anchor="mt")
 

@@ -17,7 +17,7 @@ import time
 
 import requests
 
-_BASE = "https://graph.facebook.com/v20.0"
+_BASE = "https://graph.instagram.com/v20.0"
 _TIMEOUT = 30
 
 
@@ -48,7 +48,8 @@ def _post(endpoint: str, payload: dict) -> dict:
         data=payload,
         timeout=_TIMEOUT,
     )
-    resp.raise_for_status()
+    if not resp.ok:
+        raise RuntimeError(f"Meta API HTTP {resp.status_code}: {resp.text}")
     data = resp.json()
     if "error" in data:
         raise RuntimeError(f"Meta API error: {data['error']}")
