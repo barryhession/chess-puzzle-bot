@@ -1,10 +1,10 @@
 """
 test_content_posts.py
 ---------------------
-Test script to post chess term, historical event, and book recommendation to Instagram.
+Test script to post chess term, historical event, book recommendation, and opening to Instagram.
 
 Usage:
-    python test_content_posts.py              # post all three
+    python test_content_posts.py              # post all four
     python test_content_posts.py --dry-run    # preview without posting
 """
 
@@ -17,7 +17,8 @@ load_dotenv()
 from src.chess_terms import get_term_of_the_day
 from src.history import get_today_in_history
 from src.books import get_book_of_the_week
-from src.text_renderer import render_chess_term, render_historical_event, render_book
+from src.openings import get_opening_of_the_day
+from src.text_renderer import render_chess_term, render_historical_event, render_book, render_opening
 from src.image_host import upload_image
 from src import instagram
 
@@ -186,6 +187,58 @@ def post_book(dry_run: bool = False) -> None:
     print("Done!\n")
 
 
+def post_opening(dry_run: bool = False) -> None:
+    """Generate and post opening of the day."""
+    print("=== Opening of the Day ===\n")
+
+    opening = get_opening_of_the_day()
+    print(f"Opening: {opening['name']}")
+    print(f"Moves: {opening['moves']}")
+    print(f"Idea: {opening['idea']}")
+    print(f"Level: {opening['level']}")
+
+    # Render graphic
+    output_path = OUTPUT_DIR / "opening.png"
+    render_opening(opening, output_path)
+
+    # Build caption
+    hashtags = [
+        "#chess", "#chessopening", "#lichess", "#chesspuzzle", "#chesscom",
+        "#chessdaily", "#chesslife", "#chesslove", "#chessgame", "#chessboard",
+        "#chessislife", "#chesscommunity", "#chessclub", "#chesstheory",
+        "#chessplayer", "#chessmaster", "#chesstraining", "#chessworld",
+        "#chessmoves", "#chessgrandmaster",
+    ]
+    caption = f"♟️ Opening of the Day: {opening['name']}\n\n{opening['moves']}\n\n{opening['idea']}\n\nLevel: {opening['level']}\n\n{' '.join(hashtags)}"
+
+    print("\nCaption preview:")
+    print("-" * 40)
+    print(caption)
+    print("-" * 40)
+
+    if dry_run:
+        print("\n[dry-run] Stopping. Graphic at:", output_path)
+        return
+
+    # Upload
+    print("\nUploading...")
+    image_url = upload_image(output_path)
+
+    # Post
+    print("Posting to Instagram...")
+    media_id = instagram.publish(image_url, caption)
+    print(f"Posted! Media ID: {media_id}")
+
+    # Post to Stories
+    print("Posting to Stories...")
+    try:
+        instagram.post_stories_image(image_url)
+    except Exception as e:
+        print(f"Warning: Stories post failed: {e}")
+
+    print("Done!\n")
+
+
 def main():
     parser = argparse.ArgumentParser(description="Test content posts")
     parser.add_argument("--dry-run", action="store_true", help="Preview without posting")
@@ -194,6 +247,7 @@ def main():
     post_chess_term(dry_run=args.dry_run)
     post_history(dry_run=args.dry_run)
     post_book(dry_run=args.dry_run)
+    post_opening(dry_run=args.dry_run)
 
 
 if __name__ == "__main__":

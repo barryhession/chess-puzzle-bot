@@ -7,6 +7,7 @@ Renders:
   - Chess terms of the day
   - Historical events
   - Book recommendations
+  - Chess openings of the day
 
 Uses same visual style as news_renderer.py (black/gold/white branding).
 """
@@ -261,5 +262,18 @@ def render_book(book_data: dict, output_path: Path | None = None) -> Path:
     heading = book_data["title"]
     body = book_data["description"]
     subtitle = f"by {book_data['author']}  ·  {book_data['level']}"
+
+    return render_text_graphic(title, heading, body, subtitle, output_path)
+
+
+def render_opening(opening_data: dict, output_path: Path | None = None) -> Path:
+    """Render a chess opening graphic."""
+    if output_path is None:
+        output_path = Path("output") / "opening.png"
+
+    title = "OPENING OF THE DAY"
+    heading = opening_data["name"]
+    body = opening_data["idea"]
+    subtitle = f"{opening_data['moves']}  ·  {opening_data['level']}"
 
     return render_text_graphic(title, heading, body, subtitle, output_path)
