@@ -118,7 +118,7 @@ def build_caption(puzzle: dict) -> str:
         move_hint,
         f"Difficulty: {difficulty}  |  Rating: {rating}",
         "",
-        f"Solution in the comments tomorrow.",
+        f"Solution revealed in the comments soon.",
         f"Practice on Lichess: lichess.org/training/{puzzle_id}",
         "",
         hashtag_str,
