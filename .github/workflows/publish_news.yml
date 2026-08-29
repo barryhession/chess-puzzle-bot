@@ -9,6 +9,7 @@ on:
 
 jobs:
   publish:
+    if: false  # Bypassed — re-enable by setting to true or removing this line
     runs-on: ubuntu-latest
 
     steps:
