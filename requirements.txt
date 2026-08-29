@@ -1,0 +1,8 @@
+python-chess==1.999
+svglib==2.2.0
+reportlab==5.0.1
+rlPyCairo==0.4.0
+pycairo==1.29.1
+Pillow==10.4.0
+requests==2.32.3
+python-dotenv==1.0.1

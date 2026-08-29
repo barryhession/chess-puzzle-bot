@@ -1,0 +1,27 @@
+# Credentials — never commit these
+.env
+
+# Puzzle state database
+used_puzzles.db
+
+# Lichess puzzle CSV (large file — download separately)
+puzzles/*.csv
+puzzles/*.csv.zst
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+dist/
+build/
+.venv/
+venv/
+env/
+
+# Generated images
+output/
+*.png
+
+# OS
+.DS_Store
+Thumbs.db
