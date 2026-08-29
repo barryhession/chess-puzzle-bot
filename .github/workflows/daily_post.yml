@@ -66,6 +66,7 @@ jobs:
           INSTAGRAM_ACCOUNT_ID:   ${{ secrets.INSTAGRAM_ACCOUNT_ID }}
           INSTAGRAM_APP_ID:       ${{ secrets.INSTAGRAM_APP_ID }}
           INSTAGRAM_APP_SECRET:   ${{ secrets.INSTAGRAM_APP_SECRET }}
+          IMGBB_API_KEY:          ${{ secrets.IMGBB_API_KEY }}
           PUZZLE_RATING_MIN:      ${{ vars.PUZZLE_RATING_MIN }}
           PUZZLE_RATING_MAX:      ${{ vars.PUZZLE_RATING_MAX }}
           PUZZLE_THEMES:          ${{ vars.PUZZLE_THEMES }}
