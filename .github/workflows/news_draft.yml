@@ -1,0 +1,35 @@
+name: News Draft Generator
+
+on:
+  schedule:
+    - cron: "0 10 * * *"  # 10:00 UTC daily
+  workflow_dispatch:
+
+jobs:
+  create-draft:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Create news draft
+        run: python create_news_draft.py
+        env:
+          PYTHONUTF8: "1"
+
+      - name: Commit draft if created
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add news/drafts/
+          git diff --staged --quiet || git commit -m "Add news draft $(date -u +%Y-%m-%d)"
+          git push
