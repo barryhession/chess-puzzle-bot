@@ -127,6 +127,47 @@ def post_comment(media_id: str, text: str) -> str:
     return comment_id
 
 
+def post_stories_image(image_url: str) -> str:
+    """
+    Post a static image to Instagram Stories.
+
+    Args:
+        image_url: publicly accessible HTTPS URL of the image
+
+    Returns:
+        The published media's numeric ID string.
+    """
+    account_id = _account_id()
+    token = _token()
+
+    print("[instagram] Creating Stories image container...")
+    container_data = _post(
+        f"{account_id}/media",
+        {
+            "media_type":   "STORIES",
+            "image_url":    image_url,
+            "access_token": token,
+        },
+    )
+    container_id = container_data["id"]
+    print(f"[instagram] Stories container created: {container_id}")
+
+    # Give Meta a moment to process the image
+    time.sleep(5)
+
+    print("[instagram] Publishing to Stories...")
+    publish_data = _post(
+        f"{account_id}/media_publish",
+        {
+            "creation_id":  container_id,
+            "access_token": token,
+        },
+    )
+    media_id = publish_data["id"]
+    print(f"[instagram] Stories published! Media ID: {media_id}")
+    return media_id
+
+
 def post_stories(video_url: str) -> str:
     """
     Post a video to Instagram Stories.

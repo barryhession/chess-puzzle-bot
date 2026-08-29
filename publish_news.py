@@ -11,8 +11,9 @@ Steps:
     1. Load manifest.json
     2. Upload graphic to GitHub Releases
     3. Post to Instagram feed with caption
-    4. Post comments with source URLs
-    5. Move draft to news/archived/
+    4. Post graphic to Stories
+    5. Post comments with source URLs
+    6. Move draft to news/archived/
 """
 
 import argparse
@@ -104,8 +105,19 @@ def main():
             print(f"[publish] Error posting: {e}")
             sys.exit(1)
 
-    # ── Step 3: Post comments with source URLs ─────────────────────────────────
-    print("\n=== Step 3: Posting source URL comments ===")
+    # ── Step 3: Post to Stories ────────────────────────────────────────────────
+    print("\n=== Step 3: Posting to Stories ===")
+    if args.dry_run:
+        print("[dry-run] Would post to Stories:", image_url)
+    else:
+        try:
+            instagram.post_stories_image(image_url)
+            print("[publish] Stories post complete!")
+        except Exception as e:
+            print(f"[publish] Warning: Failed to post to Stories: {e}")
+
+    # ── Step 4: Post comments with source URLs ─────────────────────────────────
+    print("\n=== Step 4: Posting source URL comments ===")
     comments_dir = draft_dir / "comments"
     if comments_dir.exists():
         comment_files = sorted(comments_dir.glob("*.txt"))
@@ -120,12 +132,12 @@ def main():
                 except Exception as e:
                     print(f"[publish] Warning: Failed to post comment {i}: {e}")
 
-    # ── Step 4: Archive draft ──────────────────────────────────────────────────
+    # ── Step 5: Archive draft ──────────────────────────────────────────────────
     if args.dry_run:
         print("\n[dry-run] Stopping before archive.")
         return
 
-    print("\n=== Step 4: Archiving draft ===")
+    print("\n=== Step 5: Archiving draft ===")
     ARCHIVED_DIR.mkdir(parents=True, exist_ok=True)
     archive_dest = ARCHIVED_DIR / draft_dir.name
     try:

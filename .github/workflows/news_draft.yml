@@ -2,7 +2,8 @@ name: News Draft Generator
 
 on:
   schedule:
-    - cron: "0 10 * * *"  # 10:00 UTC daily
+    - cron: "0 10 * * *"  # 10:00 UTC
+    - cron: "0 18 * * *"  # 18:00 UTC
   workflow_dispatch:
 
 jobs:
