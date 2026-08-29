@@ -19,8 +19,8 @@ from typing import Optional
 # ---------------------------------------------------------------------------
 # Config (from environment)
 # ---------------------------------------------------------------------------
-RATING_MIN = int(os.getenv("PUZZLE_RATING_MIN", "1200"))
-RATING_MAX = int(os.getenv("PUZZLE_RATING_MAX", "2200"))
+RATING_MIN = int(os.getenv("PUZZLE_RATING_MIN", "") or "1200")
+RATING_MAX = int(os.getenv("PUZZLE_RATING_MAX", "") or "2200")
 _raw_themes = os.getenv("PUZZLE_THEMES", "").strip()
 REQUIRED_THEMES: list[str] = [t.strip() for t in _raw_themes.split(",") if t.strip()]
 
