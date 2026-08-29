@@ -2,9 +2,11 @@ name: Daily Chess Puzzle Post
 
 on:
   schedule:
-    # 09:00 UTC every day
-    - cron: "0 9 * * *"
-  workflow_dispatch:   # allow manual trigger from GitHub UI
+    - cron: "0 8 * * *"   # 08:00 UTC / 09:00 BST
+    - cron: "0 12 * * *"  # 12:00 UTC / 13:00 BST
+    - cron: "0 17 * * *"  # 17:00 UTC / 18:00 BST
+    - cron: "0 21 * * *"  # 21:00 UTC / 22:00 BST
+  workflow_dispatch:       # allow manual trigger from GitHub UI
 
 jobs:
   post:
@@ -14,7 +16,7 @@ jobs:
       - name: Checkout repo
         uses: actions/checkout@v4
 
-      # Cache the puzzle CSV so we don't re-download it every run
+      # Cache the puzzle CSV (1GB uncompressed) — re-downloads if cache expires
       - name: Cache Lichess puzzle CSV
         uses: actions/cache@v4
         id: puzzle-cache
@@ -22,17 +24,17 @@ jobs:
           path: puzzles/
           key: lichess-puzzles-v1
 
-      - name: Download puzzle CSV (if not cached)
+      - name: Download and decompress puzzle CSV (if not cached)
         if: steps.puzzle-cache.outputs.cache-hit != 'true'
         run: |
           mkdir -p puzzles
-          curl -L "https://database.lichess.org/puzzle-themes/all.csv" \
-               -o puzzles/lichess_db_puzzle.csv
-        # ↑ This is the ~250 MB filtered CSV. For the full database swap to:
-        # https://database.lichess.org/lichess_db_puzzle.csv.zst (needs zstd)
+          curl -L "https://database.lichess.org/lichess_db_puzzle.csv.zst" \
+               -o puzzles/lichess_db_puzzle.csv.zst
+          sudo apt-get install -y zstd
+          zstd -d puzzles/lichess_db_puzzle.csv.zst -o puzzles/lichess_db_puzzle.csv
+          rm puzzles/lichess_db_puzzle.csv.zst
 
-      # Restore used_puzzles.db across runs via cache
-      # (For production, store this in a persistent store or commit it)
+      # Persist used_puzzles.db across all runs so puzzles don't repeat
       - name: Restore used-puzzles database
         uses: actions/cache@v4
         with:
@@ -45,13 +47,25 @@ jobs:
         with:
           python-version: "3.12"
 
+      - name: Install system dependencies
+        run: sudo apt-get install -y libcairo2-dev pkg-config python3-dev
+
       - name: Install Python dependencies
         run: pip install -r requirements.txt
+
+      - name: Refresh Instagram token
+        env:
+          INSTAGRAM_ACCESS_TOKEN: ${{ secrets.INSTAGRAM_ACCESS_TOKEN }}
+          INSTAGRAM_APP_ID:       ${{ secrets.INSTAGRAM_APP_ID }}
+          INSTAGRAM_APP_SECRET:   ${{ secrets.INSTAGRAM_APP_SECRET }}
+        run: python exchange_token.py
 
       - name: Post puzzle
         env:
           INSTAGRAM_ACCESS_TOKEN: ${{ secrets.INSTAGRAM_ACCESS_TOKEN }}
           INSTAGRAM_ACCOUNT_ID:   ${{ secrets.INSTAGRAM_ACCOUNT_ID }}
+          INSTAGRAM_APP_ID:       ${{ secrets.INSTAGRAM_APP_ID }}
+          INSTAGRAM_APP_SECRET:   ${{ secrets.INSTAGRAM_APP_SECRET }}
           PUZZLE_RATING_MIN:      ${{ vars.PUZZLE_RATING_MIN }}
           PUZZLE_RATING_MAX:      ${{ vars.PUZZLE_RATING_MAX }}
           PUZZLE_THEMES:          ${{ vars.PUZZLE_THEMES }}
