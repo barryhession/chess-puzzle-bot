@@ -131,5 +131,5 @@ jobs:
           INSTAGRAM_ACCESS_TOKEN: ${{ secrets.INSTAGRAM_ACCESS_TOKEN }}
           INSTAGRAM_ACCOUNT_ID: ${{ secrets.INSTAGRAM_ACCOUNT_ID }}
           GH_PAT: ${{ secrets.GH_PAT }}
-          GH_REPO: ${{ secrets.GH_REPO }}
+          GH_REPO: ${{ secrets.GH_REPO || 'barryhession/chess-puzzle-bot' }}
           PYTHONUTF8: "1"
