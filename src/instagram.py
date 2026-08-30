@@ -131,21 +131,61 @@ def post_stories_image(image_url: str) -> str:
     """
     Post a static image to Instagram Stories.
 
+    Automatically pads 1080×1350 images to 1080×1920 (9:16) with black bars
+    if needed, since Stories requires the taller aspect ratio.
+
     Args:
         image_url: publicly accessible HTTPS URL of the image
 
     Returns:
         The published media's numeric ID string.
     """
+    from PIL import Image
+    import tempfile
+    from src.image_host import upload_image
+
     account_id = _account_id()
     token = _token()
+
+    # Download and check dimensions
+    print("[instagram] Checking image dimensions for Stories...")
+    resp = requests.get(image_url, timeout=30)
+    resp.raise_for_status()
+
+    with tempfile.NamedTemporaryFile(suffix=".png", delete=False) as tmp:
+        tmp.write(resp.content)
+        tmp_path = tmp.name
+
+    img = Image.open(tmp_path)
+    w, h = img.size
+
+    if h < 1920:
+        # Pad to 1080×1920
+        print(f"[instagram] Padding {w}×{h} to 1080×1920 for Stories...")
+        canvas = Image.new("RGB", (1080, 1920), (18, 18, 18))
+        y_offset = (1920 - h) // 2
+        canvas.paste(img, (0, y_offset))
+        padded_path = tmp_path.replace(".png", "_stories.png")
+        canvas.save(padded_path, "PNG")
+
+        # Upload padded version
+        stories_url = upload_image(Path(padded_path))
+        print(f"[instagram] Padded Stories image: {stories_url}")
+    else:
+        stories_url = image_url
+        padded_path = None
+
+    # Clean up temp files
+    Path(tmp_path).unlink(missing_ok=True)
+    if padded_path:
+        Path(padded_path).unlink(missing_ok=True)
 
     print("[instagram] Creating Stories image container...")
     container_data = _post(
         f"{account_id}/media",
         {
             "media_type":   "STORIES",
-            "image_url":    image_url,
+            "image_url":    stories_url,
             "access_token": token,
         },
     )
