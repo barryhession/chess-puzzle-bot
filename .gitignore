@@ -4,6 +4,9 @@
 # Puzzle state database
 used_puzzles.db
 
+# Analytics database (contains personal game data)
+analytics/*.db
+
 # Lichess puzzle CSV (large file — download separately)
 puzzles/*.csv
 puzzles/*.csv.zst
