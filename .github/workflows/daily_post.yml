@@ -28,7 +28,7 @@ jobs:
           mkdir -p puzzles
           curl -L "https://database.lichess.org/lichess_db_puzzle.csv.zst" \
                -o puzzles/lichess_db_puzzle.csv.zst
-          sudo apt-get install -y zstd
+          sudo apt-get update && sudo apt-get install -y zstd
           zstd -d puzzles/lichess_db_puzzle.csv.zst -o puzzles/lichess_db_puzzle.csv
           rm puzzles/lichess_db_puzzle.csv.zst
 
@@ -46,7 +46,9 @@ jobs:
           python-version: "3.12"
 
       - name: Install system dependencies
-        run: sudo apt-get install -y libcairo2-dev pkg-config python3-dev
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libcairo2-dev pkg-config python3-dev
 
       - name: Install Python dependencies
         run: pip install -r requirements.txt
