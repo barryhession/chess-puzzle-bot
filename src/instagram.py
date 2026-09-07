@@ -22,6 +22,16 @@ _BASE = "https://graph.instagram.com/v20.0"
 _TIMEOUT = 30
 
 
+def _is_media_download_error(exc: Exception) -> bool:
+    """Return True for transient Meta errors where the media URL is not fetchable yet."""
+    msg = str(exc)
+    return (
+        "error_subcode\":2207052" in msg
+        or "Media download has failed" in msg
+        or "could not be fetched from this URI" in msg
+    )
+
+
 def _token() -> str:
     t = os.getenv("INSTAGRAM_ACCESS_TOKEN", "")
     if not t:
@@ -71,16 +81,31 @@ def publish(image_url: str, caption: str) -> str:
     account_id = _account_id()
     token = _token()
 
-    # Step 1 – create container
+    # Step 1 – create container (retry transient media download errors)
     print("[instagram] Creating media container…")
-    container_data = _post(
-        f"{account_id}/media",
-        {
-            "image_url": image_url,
-            "caption":   caption,
-            "access_token": token,
-        },
-    )
+    last_exc = None
+    container_data = None
+    for attempt in range(1, 4):
+        try:
+            container_data = _post(
+                f"{account_id}/media",
+                {
+                    "image_url": image_url,
+                    "caption":   caption,
+                    "access_token": token,
+                },
+            )
+            break
+        except RuntimeError as exc:
+            last_exc = exc
+            if attempt == 3 or not _is_media_download_error(exc):
+                raise
+            delay = 5 * attempt
+            print(f"[instagram] Media not fetchable yet (attempt {attempt}/3). Retrying in {delay}s...")
+            time.sleep(delay)
+
+    if container_data is None and last_exc:
+        raise last_exc
     container_id = container_data["id"]
     print(f"[instagram] Container created: {container_id}")
 
