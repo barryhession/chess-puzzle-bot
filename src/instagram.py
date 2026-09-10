@@ -20,6 +20,9 @@ import requests
 
 _BASE = "https://graph.instagram.com/v20.0"
 _TIMEOUT = 30
+_MEDIA_DOWNLOAD_ERROR_SUBCODE = 2207052
+_MEDIA_DOWNLOAD_RETRIES = 3
+_MEDIA_DOWNLOAD_RETRY_DELAY = 5
 
 
 def _token() -> str:
@@ -42,19 +45,54 @@ def _account_id() -> str:
     return aid
 
 
-def _post(endpoint: str, payload: dict) -> dict:
-    """POST to the Graph API; raise on HTTP or API errors."""
-    resp = requests.post(
-        f"{_BASE}/{endpoint}",
-        data=payload,
-        timeout=_TIMEOUT,
+def _response_json(resp: requests.Response) -> dict:
+    """Best-effort JSON decoding for Meta API responses."""
+    try:
+        data = resp.json()
+    except ValueError:
+        return {}
+    return data if isinstance(data, dict) else {}
+
+
+def _is_retryable_media_download_error(resp: requests.Response, data: dict) -> bool:
+    """Return True for Meta's intermittent media-download failure."""
+    error = data.get("error", {})
+    return (
+        resp.status_code == 400
+        and isinstance(error, dict)
+        and error.get("error_subcode") == _MEDIA_DOWNLOAD_ERROR_SUBCODE
     )
-    if not resp.ok:
-        raise RuntimeError(f"Meta API HTTP {resp.status_code}: {resp.text}")
-    data = resp.json()
-    if "error" in data:
+
+
+def _post(endpoint: str, payload: dict, *, retry_media_download_errors: bool = False) -> dict:
+    """POST to the Graph API; optionally retry transient media-download failures."""
+    attempts = _MEDIA_DOWNLOAD_RETRIES if retry_media_download_errors else 1
+
+    for attempt in range(1, attempts + 1):
+        resp = requests.post(
+            f"{_BASE}/{endpoint}",
+            data=payload,
+            timeout=_TIMEOUT,
+        )
+        data = _response_json(resp)
+        if resp.ok and "error" not in data:
+            return data
+
+        if (
+            retry_media_download_errors
+            and attempt < attempts
+            and _is_retryable_media_download_error(resp, data)
+        ):
+            print(
+                "[instagram] Meta could not fetch the media URL "
+                f"(attempt {attempt}/{attempts}); retrying..."
+            )
+            time.sleep(_MEDIA_DOWNLOAD_RETRY_DELAY)
+            continue
+
+        if not resp.ok:
+            raise RuntimeError(f"Meta API HTTP {resp.status_code}: {resp.text}")
         raise RuntimeError(f"Meta API error: {data['error']}")
-    return data
 
 
 def publish(image_url: str, caption: str) -> str:
@@ -80,6 +118,7 @@ def publish(image_url: str, caption: str) -> str:
             "caption":   caption,
             "access_token": token,
         },
+        retry_media_download_errors=True,
     )
     container_id = container_data["id"]
     print(f"[instagram] Container created: {container_id}")
@@ -189,6 +228,7 @@ def post_stories_image(image_url: str) -> str:
             "image_url":    stories_url,
             "access_token": token,
         },
+        retry_media_download_errors=True,
     )
     container_id = container_data["id"]
     print(f"[instagram] Stories container created: {container_id}")
@@ -231,6 +271,7 @@ def post_stories(video_url: str) -> str:
             "video_url":   video_url,
             "access_token": token,
         },
+        retry_media_download_errors=True,
     )
     container_id = container_data["id"]
     print(f"[instagram] Stories container created: {container_id}")
