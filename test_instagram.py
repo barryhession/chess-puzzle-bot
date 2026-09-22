@@ -109,6 +109,26 @@ class InstagramPostRetryTests(unittest.TestCase):
         self.assertEqual(mock_post.call_count, 1)
         mock_sleep.assert_not_called()
 
+    @patch("src.instagram.time.sleep")
+    @patch("src.instagram.requests.post")
+    def test_non_object_error_response_fails_cleanly(
+        self,
+        mock_post: Mock,
+        mock_sleep: Mock,
+    ) -> None:
+        response = Mock()
+        response.status_code = 500
+        response.ok = False
+        response.text = '["oops"]'
+        response.json.return_value = ["oops"]
+        mock_post.return_value = response
+
+        with self.assertRaisesRegex(RuntimeError, "Meta API HTTP 500"):
+            instagram._post("123/media", {"image_url": "https://example.com/image.png"})
+
+        self.assertEqual(mock_post.call_count, 4)
+        self.assertEqual(mock_sleep.call_count, 3)
+
 
 if __name__ == "__main__":
     unittest.main()

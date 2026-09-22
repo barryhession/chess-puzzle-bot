@@ -52,6 +52,9 @@ def _extract_error(resp: requests.Response) -> tuple[str, dict]:
     except ValueError:
         return resp.text, {}
 
+    if not isinstance(data, dict):
+        return resp.text, {}
+
     error = data.get("error")
     if isinstance(error, dict):
         return str(error), error
@@ -71,6 +74,19 @@ def _is_retryable_error(status_code: int, error: dict) -> bool:
     if status_code == 403 and subcode in _RETRYABLE_ERROR_SUBCODES:
         return True
     return False
+
+
+def _retry_reason(status_code: int, error: dict) -> str:
+    """Return a short explanation for why a request is being retried."""
+    if status_code == 429:
+        return "Meta API rate limit"
+    if 500 <= status_code < 600:
+        return f"Meta API server error ({status_code})"
+    if error.get("error_subcode") in _RETRYABLE_ERROR_SUBCODES:
+        return f"Meta API transient error subcode {error['error_subcode']}"
+    if error.get("code") in _RETRYABLE_ERROR_CODES:
+        return f"Meta API transient error code {error['code']}"
+    return "Meta API transient error"
 
 
 def _post(endpoint: str, payload: dict) -> dict:
@@ -102,7 +118,7 @@ def _post(endpoint: str, payload: dict) -> dict:
         if attempt < len(_RETRY_DELAYS) and _is_retryable_error(status_code, error):
             delay = _RETRY_DELAYS[attempt]
             print(
-                "[instagram] Meta API limit hit; "
+                f"[instagram] {_retry_reason(status_code, error)}; "
                 f"retrying in {delay}s (attempt {attempt + 2}/{len(_RETRY_DELAYS) + 1})..."
             )
             time.sleep(delay)
