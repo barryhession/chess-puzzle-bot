@@ -75,6 +75,22 @@ class InstagramPostRetryTests(unittest.TestCase):
         with self.assertRaisesRegex(RuntimeError, "unexpected JSON payload"):
             instagram._post("123/media", {"image_url": "https://example.com/image.png"})
 
+    @patch("src.instagram.time.sleep")
+    @patch("src.instagram.requests.post")
+    def test_non_dict_meta_error_is_not_retried(self, mock_post: Mock, mock_sleep: Mock) -> None:
+        response = Mock()
+        response.status_code = 200
+        response.ok = True
+        response.text = '"oops"'
+        response.json.return_value = {"error": "oops"}
+        mock_post.return_value = response
+
+        with self.assertRaisesRegex(RuntimeError, "Meta API error: oops"):
+            instagram._post("123/media", {"image_url": "https://example.com/image.png"})
+
+        self.assertEqual(mock_post.call_count, 1)
+        mock_sleep.assert_not_called()
+
 
 if __name__ == "__main__":
     unittest.main()

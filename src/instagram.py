@@ -88,8 +88,9 @@ def _post(endpoint: str, payload: dict) -> dict:
                 raise RuntimeError(f"Meta API returned unexpected JSON payload: {data!r}")
             if "error" not in data:
                 return data
-            error = data["error"]
-            message = f"Meta API error: {error}"
+            raw_error = data["error"]
+            error = raw_error if isinstance(raw_error, dict) else {}
+            message = f"Meta API error: {raw_error}"
             status_code = resp.status_code
         else:
             message, error = _extract_error(resp)
