@@ -58,6 +58,8 @@ def _extract_error(resp: requests.Response) -> tuple[str, dict]:
     error = data.get("error")
     if isinstance(error, dict):
         return str(error), error
+    if error is not None:
+        return str(error), {}
     return resp.text, {}
 
 

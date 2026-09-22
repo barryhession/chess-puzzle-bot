@@ -129,6 +129,18 @@ class InstagramPostRetryTests(unittest.TestCase):
         self.assertEqual(mock_post.call_count, 4)
         self.assertEqual(mock_sleep.call_count, 3)
 
+    @patch("src.instagram.requests.post")
+    def test_http_error_with_scalar_meta_error_surfaces_value(self, mock_post: Mock) -> None:
+        response = Mock()
+        response.status_code = 400
+        response.ok = False
+        response.text = '{"error":"oops"}'
+        response.json.return_value = {"error": "oops"}
+        mock_post.return_value = response
+
+        with self.assertRaisesRegex(RuntimeError, "Meta API HTTP 400: oops"):
+            instagram._post("123/media", {"image_url": "https://example.com/image.png"})
+
 
 if __name__ == "__main__":
     unittest.main()
