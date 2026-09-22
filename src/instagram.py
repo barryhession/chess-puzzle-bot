@@ -84,6 +84,8 @@ def _post(endpoint: str, payload: dict) -> dict:
                 data = resp.json()
             except ValueError as exc:
                 raise RuntimeError(f"Meta API returned invalid JSON: {resp.text}") from exc
+            if not isinstance(data, dict):
+                raise RuntimeError(f"Meta API returned unexpected JSON payload: {data!r}")
             if "error" not in data:
                 return data
             error = data["error"]

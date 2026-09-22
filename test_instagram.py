@@ -63,6 +63,18 @@ class InstagramPostRetryTests(unittest.TestCase):
         with self.assertRaisesRegex(RuntimeError, "invalid JSON"):
             instagram._post("123/media", {"image_url": "https://example.com/image.png"})
 
+    @patch("src.instagram.requests.post")
+    def test_raises_runtime_error_for_non_object_success_json(self, mock_post: Mock) -> None:
+        response = Mock()
+        response.status_code = 200
+        response.ok = True
+        response.text = '["ok"]'
+        response.json.return_value = ["ok"]
+        mock_post.return_value = response
+
+        with self.assertRaisesRegex(RuntimeError, "unexpected JSON payload"):
+            instagram._post("123/media", {"image_url": "https://example.com/image.png"})
+
 
 if __name__ == "__main__":
     unittest.main()
