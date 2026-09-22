@@ -117,8 +117,6 @@ def _post(endpoint: str, payload: dict) -> dict:
             continue
         raise RuntimeError(_error_message(resp, error))
 
-    raise RuntimeError(f"Meta API request failed after retries: {endpoint}")
-
 
 def publish(image_url: str, caption: str) -> str:
     """
