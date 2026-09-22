@@ -12,6 +12,7 @@ API flow:
   2. POST /{ig-user-id}/media_publish  → publishes the container
 """
 
+import logging
 import os
 import time
 from pathlib import Path
@@ -23,6 +24,7 @@ _TIMEOUT = 30
 _RETRY_BACKOFFS = (20, 40, 80)
 _RETRYABLE_STATUS_CODES = {429, 500, 502, 503, 504}
 _RETRYABLE_META_SUBCODES = {2207051, 2207052}
+logger = logging.getLogger(__name__)
 
 
 def _token() -> str:
@@ -88,7 +90,7 @@ def _post(endpoint: str, payload: dict) -> dict:
     """POST to the Graph API; retry transient failures before raising."""
     for attempt, backoff in enumerate((0, *_RETRY_BACKOFFS), start=1):
         if backoff:
-            print(
+            logger.warning(
                 f"[instagram] Retrying {endpoint} after transient Meta API failure "
                 f"(attempt {attempt}/{len(_RETRY_BACKOFFS) + 1}) in {backoff}s..."
             )
