@@ -79,9 +79,11 @@ def _post(endpoint: str, payload: dict) -> dict:
             data=payload,
             timeout=_TIMEOUT,
         )
-        data = {}
         if resp.ok:
-            data = resp.json()
+            try:
+                data = resp.json()
+            except ValueError as exc:
+                raise RuntimeError(f"Meta API returned invalid JSON: {resp.text}") from exc
             if "error" not in data:
                 return data
             error = data["error"]
