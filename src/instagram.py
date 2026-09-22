@@ -12,6 +12,7 @@ API flow:
   2. POST /{ig-user-id}/media_publish  → publishes the container
 """
 
+import logging
 import os
 import time
 from pathlib import Path
@@ -23,6 +24,7 @@ _TIMEOUT = 30
 _RETRY_DELAYS = (20, 40, 80)
 _RETRYABLE_ERROR_CODES = {4, 17, 32, 613}
 _RETRYABLE_ERROR_SUBCODES = {2207051, 2207052}
+_LOG = logging.getLogger(__name__)
 
 
 def _token() -> str:
@@ -119,9 +121,12 @@ def _post(endpoint: str, payload: dict) -> dict:
 
         if attempt < len(_RETRY_DELAYS) and _is_retryable_error(status_code, error):
             delay = _RETRY_DELAYS[attempt]
-            print(
-                f"[instagram] {_retry_reason(status_code, error)}; "
-                f"retrying in {delay}s (attempt {attempt + 2}/{len(_RETRY_DELAYS) + 1})..."
+            _LOG.warning(
+                "[instagram] %s; retrying in %ss (attempt %s/%s)...",
+                _retry_reason(status_code, error),
+                delay,
+                attempt + 2,
+                len(_RETRY_DELAYS) + 1,
             )
             time.sleep(delay)
             continue
