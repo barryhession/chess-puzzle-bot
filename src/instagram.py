@@ -45,12 +45,16 @@ def _account_id() -> str:
     return aid
 
 
-def _extract_error(resp: requests.Response) -> dict | None:
-    """Return Meta error data when present."""
+def _decode_json(resp: requests.Response) -> object | None:
+    """Best-effort JSON decoding for Meta API responses."""
     try:
-        data = resp.json()
+        return resp.json()
     except ValueError:
         return None
+
+
+def _extract_error_from_data(data: object) -> dict | None:
+    """Return Meta error data when present in a decoded response body."""
     if isinstance(data, dict):
         error = data.get("error")
         if isinstance(error, dict):
@@ -96,13 +100,11 @@ def _post(endpoint: str, payload: dict) -> dict:
             timeout=_TIMEOUT,
         )
 
+        data = _decode_json(resp)
+        error = _extract_error_from_data(data)
         if resp.ok:
-            data = resp.json()
-            if "error" not in data:
+            if isinstance(data, dict) and "error" not in data:
                 return data
-            error = data["error"]
-        else:
-            error = _extract_error(resp)
 
         if attempt <= len(_RETRY_BACKOFFS) and _should_retry(resp, error):
             continue
