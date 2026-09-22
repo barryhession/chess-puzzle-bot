@@ -87,7 +87,7 @@ def _error_message(resp: requests.Response, error: dict | None) -> str:
 
 
 def _post(endpoint: str, payload: dict) -> dict:
-    """POST to the Graph API; retry transient failures before raising."""
+    """POST to an object-returning Graph API endpoint; retry transient failures."""
     for attempt, backoff in enumerate((0, *_RETRY_BACKOFFS), start=1):
         if backoff:
             logger.warning(
@@ -113,7 +113,7 @@ def _post(endpoint: str, payload: dict) -> dict:
         error = _extract_error_from_data(data)
         if resp.ok:
             if not isinstance(data, dict):
-                return data
+                raise RuntimeError(_error_message(resp, error))
             if "error" not in data:
                 return data
 
