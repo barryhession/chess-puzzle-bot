@@ -91,6 +91,25 @@ class InstagramPostRetryTests(unittest.TestCase):
         self.assertEqual(mock_post.call_count, 1)
         mock_sleep.assert_not_called()
 
+    @patch("src.instagram.time.sleep")
+    @patch("src.instagram.requests.post")
+    def test_retries_server_error_with_non_json_body(self, mock_post, mock_sleep):
+        mock_post.side_effect = [
+            _FakeResponse(
+                ok=False,
+                status_code=500,
+                data="server exploded",
+                text="server exploded",
+            ),
+            _FakeResponse(ok=True, status_code=200, data={"id": "123"}),
+        ]
+
+        result = instagram._post("account/media_publish", {"creation_id": "abc"})
+
+        self.assertEqual(result, {"id": "123"})
+        self.assertEqual(mock_post.call_count, 2)
+        mock_sleep.assert_called_once_with(20)
+
 
 if __name__ == "__main__":
     unittest.main()

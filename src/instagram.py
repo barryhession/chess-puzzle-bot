@@ -100,6 +100,13 @@ def _post(endpoint: str, payload: dict) -> dict:
             timeout=_TIMEOUT,
         )
 
+        if (
+            not resp.ok
+            and resp.status_code in _RETRYABLE_STATUS_CODES
+            and attempt <= len(_RETRY_BACKOFFS)
+        ):
+            continue
+
         data = _decode_json(resp)
         error = _extract_error_from_data(data)
         if resp.ok:
