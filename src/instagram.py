@@ -64,9 +64,11 @@ def _is_retryable_error(status_code: int, error: dict) -> bool:
     subcode = error.get("error_subcode")
     if status_code == 429:
         return True
-    if code in _RETRYABLE_ERROR_CODES:
+    if 500 <= status_code < 600:
         return True
-    if subcode in _RETRYABLE_ERROR_SUBCODES:
+    if status_code == 403 and code in _RETRYABLE_ERROR_CODES:
+        return True
+    if status_code == 403 and subcode in _RETRYABLE_ERROR_SUBCODES:
         return True
     return False
 

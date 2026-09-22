@@ -51,6 +51,24 @@ class InstagramPostRetryTests(unittest.TestCase):
         self.assertEqual(mock_post.call_count, 1)
         mock_sleep.assert_not_called()
 
+    @patch("src.instagram.time.sleep")
+    @patch("src.instagram.requests.post")
+    def test_does_not_retry_throttling_code_on_non_throttling_status(
+        self,
+        mock_post: Mock,
+        mock_sleep: Mock,
+    ) -> None:
+        mock_post.return_value = _response(
+            400,
+            {"error": {"message": "Bad request", "code": 4, "error_subcode": 2207051}},
+        )
+
+        with self.assertRaisesRegex(RuntimeError, "Meta API HTTP 400"):
+            instagram._post("123/media", {"image_url": "https://example.com/image.png"})
+
+        self.assertEqual(mock_post.call_count, 1)
+        mock_sleep.assert_not_called()
+
     @patch("src.instagram.requests.post")
     def test_raises_runtime_error_for_invalid_success_json(self, mock_post: Mock) -> None:
         response = Mock()
