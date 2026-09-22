@@ -112,7 +112,9 @@ def _post(endpoint: str, payload: dict) -> dict:
         data = _decode_json(resp)
         error = _extract_error_from_data(data)
         if resp.ok:
-            if isinstance(data, dict) and "error" not in data:
+            if not isinstance(data, dict):
+                return data
+            if "error" not in data:
                 return data
 
         if attempt <= len(_RETRY_BACKOFFS) and _should_retry(resp, error):

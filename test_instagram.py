@@ -77,7 +77,7 @@ class InstagramPostRetryTests(unittest.TestCase):
 
     @patch("src.instagram.time.sleep")
     @patch("src.instagram.requests.post")
-    def test_invalid_success_payload_raises_runtime_error(self, mock_post, mock_sleep):
+    def test_non_dict_success_payload_is_returned(self, mock_post, mock_sleep):
         mock_post.return_value = _FakeResponse(
             ok=True,
             status_code=200,
@@ -85,9 +85,9 @@ class InstagramPostRetryTests(unittest.TestCase):
             text='["unexpected", "payload"]',
         )
 
-        with self.assertRaises(RuntimeError):
-            instagram._post("account/media_publish", {"creation_id": "abc"})
+        result = instagram._post("account/media_publish", {"creation_id": "abc"})
 
+        self.assertEqual(result, ["unexpected", "payload"])
         self.assertEqual(mock_post.call_count, 1)
         mock_sleep.assert_not_called()
 
