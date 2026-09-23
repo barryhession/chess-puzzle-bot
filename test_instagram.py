@@ -37,6 +37,29 @@ class InstagramPostTests(unittest.TestCase):
         self.assertEqual(post.call_count, 2)
         sleep.assert_called_once_with(20)
 
+    def test_post_retries_retryable_meta_internal_error_then_succeeds(self):
+        retryable_error = {
+            "error": {
+                "message": "Fatal",
+                "type": "OAuthException",
+                "code": -1,
+                "error_subcode": 2207085,
+            }
+        }
+        success = {"id": "123"}
+
+        with patch("src.instagram.requests.post") as post, patch("src.instagram.time.sleep") as sleep:
+            post.side_effect = [
+                _mock_response(status_code=400, ok=False, body=retryable_error, text="retryable"),
+                _mock_response(status_code=200, ok=True, body=success),
+            ]
+
+            result = instagram._post("endpoint", {"k": "v"})
+
+        self.assertEqual(result, success)
+        self.assertEqual(post.call_count, 2)
+        sleep.assert_called_once_with(20)
+
 
     def test_post_raises_immediately_on_non_retryable_meta_error(self):
         non_retryable_error = {
