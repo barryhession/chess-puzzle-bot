@@ -12,6 +12,7 @@ API flow:
   2. POST /{ig-user-id}/media_publish  → publishes the container
 """
 
+import logging
 import os
 import time
 from pathlib import Path
@@ -26,6 +27,7 @@ _RETRYABLE_GRAPH_ERRORS = {
     (4, 2207051),  # Application request limit reached
     (4, 2207052),  # Action blocked / temporary restrictions
 }
+_LOGGER = logging.getLogger(__name__)
 
 
 def _token() -> str:
@@ -66,17 +68,18 @@ def _post(endpoint: str, payload: dict) -> dict:
         error = body.get("error") if isinstance(body, dict) else None
         code = error.get("code") if isinstance(error, dict) else None
         subcode = error.get("error_subcode") if isinstance(error, dict) else None
-        retryable = (
-            resp.status_code in _RETRYABLE_STATUS_CODES
-            or (code, subcode) in _RETRYABLE_GRAPH_ERRORS
+        retryable_status = resp.status_code in _RETRYABLE_STATUS_CODES
+        retryable_graph_error = (
+            resp.status_code == 403 and (code, subcode) in _RETRYABLE_GRAPH_ERRORS
         )
+        retryable = retryable_status or retryable_graph_error
 
         if resp.ok and not error:
             return body
 
         if retryable and attempt < len(_BACKOFF_SECONDS):
             delay = _BACKOFF_SECONDS[attempt]
-            print(
+            _LOGGER.warning(
                 f"[instagram] Transient Meta API failure "
                 f"(status={resp.status_code}, code={code}, subcode={subcode}); "
                 f"retrying in {delay}s ({attempt + 1}/{len(_BACKOFF_SECONDS)})..."
