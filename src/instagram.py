@@ -20,6 +20,12 @@ import requests
 
 _BASE = "https://graph.instagram.com/v20.0"
 _TIMEOUT = 30
+_BACKOFF_SECONDS = (20, 40, 80)
+_RETRYABLE_STATUS_CODES = {429, 500, 502, 503, 504}
+_RETRYABLE_GRAPH_ERRORS = {
+    (4, 2207051),  # Application request limit reached
+    (4, 2207052),  # Action blocked / temporary restrictions
+}
 
 
 def _token() -> str:
@@ -43,18 +49,46 @@ def _account_id() -> str:
 
 
 def _post(endpoint: str, payload: dict) -> dict:
-    """POST to the Graph API; raise on HTTP or API errors."""
-    resp = requests.post(
-        f"{_BASE}/{endpoint}",
-        data=payload,
-        timeout=_TIMEOUT,
-    )
-    if not resp.ok:
-        raise RuntimeError(f"Meta API HTTP {resp.status_code}: {resp.text}")
-    data = resp.json()
-    if "error" in data:
-        raise RuntimeError(f"Meta API error: {data['error']}")
-    return data
+    """POST to the Graph API; retry selected transient failures."""
+
+    for attempt in range(len(_BACKOFF_SECONDS) + 1):
+        resp = requests.post(
+            f"{_BASE}/{endpoint}",
+            data=payload,
+            timeout=_TIMEOUT,
+        )
+
+        try:
+            body = resp.json()
+        except ValueError:
+            body = {}
+
+        error = body.get("error") if isinstance(body, dict) else None
+        code = error.get("code") if isinstance(error, dict) else None
+        subcode = error.get("error_subcode") if isinstance(error, dict) else None
+        retryable = (
+            resp.status_code in _RETRYABLE_STATUS_CODES
+            or (code, subcode) in _RETRYABLE_GRAPH_ERRORS
+        )
+
+        if resp.ok and not error:
+            return body
+
+        if retryable and attempt < len(_BACKOFF_SECONDS):
+            delay = _BACKOFF_SECONDS[attempt]
+            print(
+                f"[instagram] Transient Meta API failure "
+                f"(status={resp.status_code}, code={code}, subcode={subcode}); "
+                f"retrying in {delay}s ({attempt + 1}/{len(_BACKOFF_SECONDS)})..."
+            )
+            time.sleep(delay)
+            continue
+
+        if not resp.ok:
+            raise RuntimeError(f"Meta API HTTP {resp.status_code}: {resp.text}")
+        raise RuntimeError(f"Meta API error: {error}")
+
+    raise RuntimeError("Meta API request failed after retries")
 
 
 def publish(image_url: str, caption: str) -> str:
