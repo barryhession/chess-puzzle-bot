@@ -25,6 +25,7 @@ _RETRYABLE_STATUS_CODES = {429, 500, 502, 503, 504}
 _RETRYABLE_GRAPH_ERRORS = {
     (4, 2207051),  # Application request limit reached
     (4, 2207052),  # Action blocked / temporary restrictions
+    (-1, 2207085),  # Generic internal error / try again later
 }
 
 
