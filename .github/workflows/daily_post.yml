@@ -72,16 +72,16 @@ jobs:
           PUZZLE_RATING_MAX:      ${{ vars.PUZZLE_RATING_MAX }}
           PUZZLE_THEMES:          ${{ vars.PUZZLE_THEMES }}
         run: |
-          for attempt in 1 2 3; do
-            echo "Post attempt ${attempt}/3"
+          for attempt in 1 2 3 4 5; do
+            echo "Post attempt ${attempt}/5"
             if python main.py; then
               exit 0
             fi
-            if [ "$attempt" -lt 3 ]; then
-              delay=$((attempt * 60))
+            if [ "$attempt" -lt 5 ]; then
+              delay=$((60 * (2 ** (attempt - 1))))
               echo "Post failed; retrying in ${delay}s..."
               sleep "$delay"
             fi
           done
-          echo "Post failed after 3 attempts."
+          echo "Post failed after 5 attempts."
           exit 1
