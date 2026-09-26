@@ -20,7 +20,7 @@ import requests
 
 _BASE = "https://graph.instagram.com/v20.0"
 _TIMEOUT = 30
-_BACKOFF_SECONDS = (20, 40, 80)
+_BACKOFF_SECONDS = (20, 40, 80, 160)
 _RETRYABLE_STATUS_CODES = {429, 500, 502, 503, 504}
 _RETRYABLE_GRAPH_ERRORS = {
     (4, 2207051),  # Application request limit reached
