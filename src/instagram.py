@@ -21,6 +21,7 @@ import requests
 _BASE = "https://graph.instagram.com/v20.0"
 _TIMEOUT = 30
 _BACKOFF_SECONDS = (20, 40, 80, 160, 320)
+_PUBLISH_RECOVERY_BACKOFF_SECONDS = (30, 60, 120)
 _RETRYABLE_STATUS_CODES = {429, 500, 502, 503, 504}
 _RETRYABLE_GRAPH_ERRORS = {
     (4, 2207051),  # Application request limit reached
@@ -70,6 +71,19 @@ def _account_id() -> str:
             "Add it to your .env file or GitHub secret."
         )
     return aid
+
+
+def _is_retryable_publish_failure(error_text: str) -> bool:
+    lowered = error_text.lower()
+    if "oauthexception" not in lowered:
+        return False
+    return (
+        '"code":-1' in lowered
+        or '"code": -1' in lowered
+        or "2207085" in lowered
+        or "generic internal error" in lowered
+        or "internal server error" in lowered
+    )
 
 
 def _post(endpoint: str, payload: dict) -> dict:
@@ -126,34 +140,53 @@ def publish(image_url: str, caption: str) -> str:
     account_id = _account_id()
     token = _token()
 
-    # Step 1 – create container
-    print("[instagram] Creating media container…")
-    container_data = _post(
-        f"{account_id}/media",
-        {
-            "image_url": image_url,
-            "caption":   caption,
-            "access_token": token,
-        },
-    )
-    container_id = container_data["id"]
-    print(f"[instagram] Container created: {container_id}")
+    for attempt in range(len(_PUBLISH_RECOVERY_BACKOFF_SECONDS) + 1):
+        # Step 1 – create container
+        print("[instagram] Creating media container…")
+        container_data = _post(
+            f"{account_id}/media",
+            {
+                "image_url": image_url,
+                "caption":   caption,
+                "access_token": token,
+            },
+        )
+        container_id = container_data["id"]
+        print(f"[instagram] Container created: {container_id}")
 
-    # Give Meta a moment to process the image (recommended in docs)
-    time.sleep(5)
+        # Give Meta a moment to process the image (recommended in docs)
+        time.sleep(5)
 
-    # Step 2 – publish
-    print("[instagram] Publishing…")
-    publish_data = _post(
-        f"{account_id}/media_publish",
-        {
-            "creation_id":  container_id,
-            "access_token": token,
-        },
-    )
-    media_id = publish_data["id"]
-    print(f"[instagram] Published! Media ID: {media_id}")
-    return media_id
+        # Step 2 – publish
+        print("[instagram] Publishing…")
+        try:
+            publish_data = _post(
+                f"{account_id}/media_publish",
+                {
+                    "creation_id":  container_id,
+                    "access_token": token,
+                },
+            )
+        except RuntimeError as exc:
+            if (
+                attempt < len(_PUBLISH_RECOVERY_BACKOFF_SECONDS)
+                and _is_retryable_publish_failure(str(exc))
+            ):
+                delay = _PUBLISH_RECOVERY_BACKOFF_SECONDS[attempt]
+                print(
+                    "[instagram] Publish failed with transient internal Meta error; "
+                    f"recreating container in {delay}s "
+                    f"({attempt + 1}/{len(_PUBLISH_RECOVERY_BACKOFF_SECONDS)})..."
+                )
+                time.sleep(delay)
+                continue
+            raise
+
+        media_id = publish_data["id"]
+        print(f"[instagram] Published! Media ID: {media_id}")
+        return media_id
+
+    raise RuntimeError("Meta publish failed after container recreation retries")
 
 
 def post_comment(media_id: str, text: str) -> str:
