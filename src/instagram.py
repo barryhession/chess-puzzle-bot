@@ -44,6 +44,9 @@ def _is_retryable_meta_error(resp: requests.Response, error: dict | None) -> boo
     if code != -1:
         return False
 
+    if str(error.get("type", "")) == "OAuthException":
+        return True
+
     title = str(error.get("error_user_title", "")).lower()
     message = str(error.get("error_user_msg", "")).lower()
     return "internal error" in title or "internal server error" in message
