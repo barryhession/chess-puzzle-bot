@@ -20,13 +20,33 @@ import requests
 
 _BASE = "https://graph.instagram.com/v20.0"
 _TIMEOUT = 30
-_BACKOFF_SECONDS = (20, 40, 80, 160)
+_BACKOFF_SECONDS = (20, 40, 80, 160, 320)
 _RETRYABLE_STATUS_CODES = {429, 500, 502, 503, 504}
 _RETRYABLE_GRAPH_ERRORS = {
     (4, 2207051),  # Application request limit reached
     (4, 2207052),  # Action blocked / temporary restrictions
     (-1, 2207085),  # Generic internal error / try again later
 }
+
+
+def _is_retryable_meta_error(resp: requests.Response, error: dict | None) -> bool:
+    if resp.status_code in _RETRYABLE_STATUS_CODES:
+        return True
+
+    if not isinstance(error, dict):
+        return False
+
+    code = error.get("code")
+    subcode = error.get("error_subcode")
+    if (code, subcode) in _RETRYABLE_GRAPH_ERRORS:
+        return True
+
+    if code != -1:
+        return False
+
+    title = str(error.get("error_user_title", "")).lower()
+    message = str(error.get("error_user_msg", "")).lower()
+    return "internal error" in title or "internal server error" in message
 
 
 def _token() -> str:
@@ -67,10 +87,7 @@ def _post(endpoint: str, payload: dict) -> dict:
         error = body.get("error") if isinstance(body, dict) else None
         code = error.get("code") if isinstance(error, dict) else None
         subcode = error.get("error_subcode") if isinstance(error, dict) else None
-        retryable = (
-            resp.status_code in _RETRYABLE_STATUS_CODES
-            or (code, subcode) in _RETRYABLE_GRAPH_ERRORS
-        )
+        retryable = _is_retryable_meta_error(resp, error)
 
         if resp.ok and not error:
             return body
