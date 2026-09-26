@@ -14,6 +14,54 @@ def _mock_response(*, status_code: int, ok: bool, body: dict, text: str = ""):
 
 
 class InstagramPostTests(unittest.TestCase):
+    def test_publish_recreates_container_after_retryable_publish_failure_then_succeeds(self):
+        with (
+            patch("src.instagram._account_id", return_value="acct"),
+            patch("src.instagram._token", return_value="tok"),
+            patch("src.instagram._post") as post,
+            patch("src.instagram.time.sleep") as sleep,
+        ):
+            post.side_effect = [
+                {"id": "container-1"},
+                RuntimeError(
+                    'Meta API HTTP 400: {"error":{"type":"OAuthException","code":-1,"error_subcode":2207085}}'
+                ),
+                {"id": "container-2"},
+                {"id": "media-1"},
+            ]
+
+            media_id = instagram.publish("https://example.com/image.png", "caption")
+
+        self.assertEqual(media_id, "media-1")
+        self.assertEqual(
+            [call.args[0] for call in post.call_args_list],
+            ["acct/media", "acct/media_publish", "acct/media", "acct/media_publish"],
+        )
+        self.assertEqual(
+            [call.args[0] for call in sleep.call_args_list],
+            [5, 30, 5],
+        )
+
+    def test_publish_raises_immediately_on_non_retryable_publish_failure(self):
+        with (
+            patch("src.instagram._account_id", return_value="acct"),
+            patch("src.instagram._token", return_value="tok"),
+            patch("src.instagram._post") as post,
+            patch("src.instagram.time.sleep") as sleep,
+        ):
+            post.side_effect = [
+                {"id": "container-1"},
+                RuntimeError(
+                    'Meta API HTTP 400: {"error":{"type":"OAuthException","code":190}}'
+                ),
+            ]
+
+            with self.assertRaises(RuntimeError):
+                instagram.publish("https://example.com/image.png", "caption")
+
+        self.assertEqual(post.call_count, 2)
+        self.assertEqual([call.args[0] for call in sleep.call_args_list], [5])
+
     def test_post_retries_retryable_meta_403_then_succeeds(self):
         retryable_error = {
             "error": {
